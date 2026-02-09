@@ -7,8 +7,8 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount).replace('Rp', '').trim();
 };
 
-export const formatNumber = (num: number | undefined): string => {
-  if (num === undefined || num === 0) return '';
+export const formatNumber = (num: number | undefined | null): string => {
+  if (num === undefined || num === null) return '0';
   return new Intl.NumberFormat('id-ID').format(num);
 };
 

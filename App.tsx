@@ -54,7 +54,8 @@ const App: React.FC = () => {
     bendaharaNama: TREASURER.name,
     bendaharaNip: TREASURER.nip,
     pptkNama: 'Novi Haryanto, S.Adm',
-    pptkNip: '197111201991031003'
+    pptkNip: '197111201991031003',
+    logo: undefined
   });
   const [masterCosts, setMasterCosts] = useState<MasterCost[]>([]);
   const [subActivities, setSubActivities] = useState<SubActivity[]>([]);
@@ -98,11 +99,27 @@ const App: React.FC = () => {
       
       if (offData) setOfficials(offData);
       if (destOffData) setDestinationOfficials(destOffData);
-      if (skpdData) setSkpdConfig({ ...skpdConfig, ...skpdData });
+      
+      if (skpdData) {
+        setSkpdConfig({
+          provinsi: skpdData.provinsi || 'Provinsi Nusa Tenggara Barat',
+          namaSkpd: skpdData.nama_skpd || OFFICE_NAME,
+          alamat: skpdData.alamat || OFFICE_ADDRESS,
+          lokasi: skpdData.lokasi || 'MATARAM',
+          kepalaNama: skpdData.kepala_nama || HEAD_OF_OFFICE.name,
+          kepalaNip: skpdData.kepala_nip || HEAD_OF_OFFICE.nip,
+          kepalaJabatan: skpdData.kepala_jabatan || 'KEPALA DINAS',
+          bendaharaNama: skpdData.bendahara_nama || TREASURER.name,
+          bendaharaNip: skpdData.bendahara_nip || TREASURER.nip,
+          pptkNama: skpdData.pptk_nama || 'Novi Haryanto, S.Adm',
+          pptkNip: skpdData.pptk_nip || '197111201991031003',
+          logo: skpdData.logo
+        });
+      }
       
       if (costData) setMasterCosts(costData.map(c => ({
         destination: c.destination, dailyAllowance: c.daily_allowance, lodging: c.lodging,
-        transport_bbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi
+        transportBbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi
       })));
 
       if (subData) setSubActivities(subData);
@@ -268,7 +285,21 @@ const App: React.FC = () => {
           <div className="space-y-8 animate-in fade-in duration-500">
             <SKPDForm config={skpdConfig} onSave={async (cfg) => {
               if (supabase) {
-                await supabase.from('skpd_config').upsert({ id: 'main', ...cfg });
+                await supabase.from('skpd_config').upsert({ 
+                  id: 'main', 
+                  provinsi: cfg.provinsi,
+                  nama_skpd: cfg.namaSkpd,
+                  alamat: cfg.alamat,
+                  lokasi: cfg.lokasi,
+                  kepala_nama: cfg.kepalaNama,
+                  kepala_nip: cfg.kepalaNip,
+                  kepala_jabatan: cfg.kepalaJabatan,
+                  bendahara_nama: cfg.bendaharaNama,
+                  bendahara_nip: cfg.bendaharaNip,
+                  pptk_nama: cfg.pptkNama,
+                  pptk_nip: cfg.pptkNip,
+                  logo: cfg.logo
+                });
                 await refreshData();
               }
             }} />

@@ -387,10 +387,12 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
       {assignment.costs.map((cost) => {
         const emp = employees.find(e => e.id === cost.employeeId);
         if (!emp) return null;
-        const subTotalDaily = cost.dailyAllowance * cost.dailyDays;
-        const subTotalLodging = cost.lodging * cost.lodgingDays;
-        const subTotalTransport = cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi;
-        const subTotalRepres = cost.representation * cost.representationDays;
+        
+        // Proteksi NaN dengan || 0
+        const subTotalDaily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
+        const subTotalLodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
+        const subTotalTransport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
+        const subTotalRepres = (cost.representation || 0) * (cost.representationDays || 0);
         const grandTotal = subTotalDaily + subTotalLodging + subTotalTransport + subTotalRepres;
 
         return (
@@ -424,13 +426,13 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
                   </tr>
                   <tr>
                     <td className="border border-black p-1 text-center align-top">3</td>
-                    <td className="border border-black p-1">Uang Harian Golongan {emp.pangkatGol.split('(')[1]?.replace(')', '') || ''}<br/>- Uang Harian ({cost.dailyDays} Hari x Rp. {formatNumber(cost.dailyAllowance)})</td>
+                    <td className="border border-black p-1">Uang Harian Golongan {emp.pangkatGol.split('(')[1]?.replace(')', '') || ''}<br/>- Uang Harian ({cost.dailyDays || 0} Hari x Rp. {formatNumber(cost.dailyAllowance || 0)})</td>
                     <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalDaily)}</td>
                     <td className="border border-black p-1"></td>
                   </tr>
                   <tr>
                     <td className="border border-black p-1 text-center align-top">4</td>
-                    <td className="border border-black p-1">Uang Representasi ({cost.representationDays} Hari x Rp. {formatNumber(cost.representation)})</td>
+                    <td className="border border-black p-1">Uang Representasi ({cost.representationDays || 0} Hari x Rp. {formatNumber(cost.representation || 0)})</td>
                     <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalRepres)}</td>
                     <td className="border border-black p-1"></td>
                   </tr>
@@ -495,7 +497,14 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
 
 export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials }) => {
   const { kepala, bendahara, pptk } = getSignatories(assignment, officials, skpd);
-  const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
+  const totalAll = assignment.costs.reduce((sum, cost) => {
+    const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
+    const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
+    const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
+    const repres = (cost.representation || 0) * (cost.representationDays || 0);
+    return sum + daily + lodging + transport + repres;
+  }, 0);
+  
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
 
   return (
@@ -520,7 +529,6 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         <span className="font-bold text-lg">Rp. {formatNumber(totalAll)}</span>
       </div>
       
-      {/* Container TTD - Dibuat flex untuk menyejajarkan nama di bawah */}
       <div className="grid grid-cols-3 gap-2 text-center text-[10pt] mb-8">
         <div className="flex flex-col">
           <p>Menyetujui :</p>
@@ -573,10 +581,11 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
 export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials }) => {
   const { kepala, bendahara } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => {
-    return sum + (cost.dailyAllowance * cost.dailyDays) + 
-           (cost.lodging * cost.lodgingDays) + 
-           cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + 
-           (cost.representation * cost.representationDays);
+    const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
+    const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
+    const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
+    const repres = (cost.representation || 0) * (cost.representationDays || 0);
+    return sum + daily + lodging + transport + repres;
   }, 0);
 
   return (
@@ -602,16 +611,21 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
           <tbody>
             {assignment.costs.map((cost, i) => {
               const emp = employees.find(e => e.id === cost.employeeId);
-              const total = (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays);
+              const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
+              const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
+              const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
+              const repres = (cost.representation || 0) * (cost.representationDays || 0);
+              const total = daily + lodging + transport + repres;
+              
               return (
                 <tr key={cost.employeeId}>
                   <td className="border border-black p-1 text-center">{i + 1}</td>
                   <td className="border border-black p-1">{emp?.name}</td>
                   <td className="border border-black p-1 text-center">{emp?.pangkatGol.split('(')[1]?.replace(')', '') || ''}</td>
-                  <td className="border border-black p-1 text-center">{cost.dailyDays} hr x Rp {formatNumber(cost.dailyAllowance)}</td>
-                  <td className="border border-black p-1 text-center">{cost.lodgingDays} hr x Rp {formatNumber(cost.lodging)}</td>
-                  <td className="border border-black p-1 text-center">Rp {formatNumber(cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi)}</td>
-                  <td className="border border-black p-1 text-center">Rp {formatNumber(cost.representation * cost.representationDays)}</td>
+                  <td className="border border-black p-1 text-center">{cost.dailyDays || 0} hr x Rp {formatNumber(cost.dailyAllowance || 0)}</td>
+                  <td className="border border-black p-1 text-center">{cost.lodgingDays || 0} hr x Rp {formatNumber(cost.lodging || 0)}</td>
+                  <td className="border border-black p-1 text-center">Rp {formatNumber(transport)}</td>
+                  <td className="border border-black p-1 text-center">Rp {formatNumber(repres)}</td>
                   <td className="border border-black p-1 text-right font-bold">Rp {formatNumber(total)}</td>
                   <td className="border border-black p-1 relative min-h-[30px]">
                     <span className={`absolute ${i % 2 === 0 ? 'left-1' : 'right-4'} top-1 font-bold`}>{i + 1}.</span>

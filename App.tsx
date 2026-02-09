@@ -17,15 +17,25 @@ import {
   DaftarPenerimaanTemplate 
 } from './components/PrintDocuments';
 import { 
-  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, UserCheck, UserCog, MapPin, PieChart, Activity, RefreshCw, Cloud, AlertCircle
+  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, UserCheck, UserCog, MapPin, PieChart, Activity, RefreshCw, Cloud, AlertCircle, HardDrive
 } from 'lucide-react';
 import { formatDateID } from './utils';
 import { INITIAL_SUB_ACTIVITIES, HEAD_OF_OFFICE, TREASURER, OFFICE_NAME, OFFICE_ADDRESS, OFFICE_LOCATION, LIST_KOTA_NTB } from './constants';
 
-// Konfigurasi Supabase dari Environment Variables
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Akses variabel lingkungan secara aman
+const getEnv = (key: string) => {
+  try {
+    return (window as any).process?.env?.[key] || (import.meta as any).env?.[`VITE_${key}`] || "";
+  } catch {
+    return "";
+  }
+};
+
+const supabaseUrl = getEnv('SUPABASE_URL');
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
+
+// Inisialisasi Supabase hanya jika kunci tersedia
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
@@ -57,10 +67,9 @@ const App: React.FC = () => {
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState<string | null>(null);
 
-  // Fungsi Fetch Data Utama
   const refreshData = async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      setError("Konfigurasi Supabase (URL/Key) tidak ditemukan di Environment Variables.");
+    if (!supabase) {
+      setError("Konfigurasi Database (SUPABASE_URL / KEY) belum diatur di Vercel.");
       setLoading(false);
       return;
     }
@@ -68,7 +77,7 @@ const App: React.FC = () => {
     setLoading(true);
     try {
       const [
-        { data: empData },
+        { data: empData, error: empErr },
         { data: offData },
         { data: destOffData },
         { data: skpdData },
@@ -84,6 +93,8 @@ const App: React.FC = () => {
         supabase.from('sub_activities').select('*').order('code'),
         supabase.from('assignments').select('*').order('created_at', { ascending: false })
       ]);
+
+      if (empErr) throw empErr;
 
       if (empData) setEmployees(empData.map(e => ({
         id: e.id, name: e.name, nip: e.nip, pangkatGol: e.pangkat_gol, jabatan: e.jabatan,
@@ -144,7 +155,8 @@ const App: React.FC = () => {
 
       setError(null);
     } catch (err: any) {
-      setError(err.message || "Gagal menyinkronkan data dengan Supabase.");
+      console.error("Database Error:", err);
+      setError("Gagal terhubung ke Tabel Supabase. Pastikan tabel 'employees', 'assignments', dll sudah dibuat di SQL Editor.");
     } finally {
       setLoading(false);
     }
@@ -154,8 +166,8 @@ const App: React.FC = () => {
     refreshData();
   }, []);
 
-  // Handlers CRUD dengan Supabase
   const saveEmployee = async (emp: Employee) => {
+    if (!supabase) return;
     const dbData = {
       id: emp.id, name: emp.name, nip: emp.nip, pangkat_gol: emp.pangkatGol, jabatan: emp.jabatan,
       representation_luar: emp.representationLuar, representation_dalam: emp.representationDalam
@@ -165,6 +177,7 @@ const App: React.FC = () => {
   };
 
   const deleteEmployee = async (id: string) => {
+    if (!supabase) return;
     if (confirm('Hapus pegawai ini secara permanen dari Cloud?')) {
       await supabase.from('employees').delete().eq('id', id);
       await refreshData();
@@ -172,6 +185,7 @@ const App: React.FC = () => {
   };
 
   const saveAssignment = async (data: TravelAssignment) => {
+    if (!supabase) return;
     const dbData = {
       id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode,
       purpose: data.purpose, origin: data.origin, travel_type: data.travelType, transportation: data.transportation,
@@ -186,6 +200,7 @@ const App: React.FC = () => {
   };
 
   const deleteAssignment = async (id: string) => {
+    if (!supabase) return;
     if (confirm('Hapus riwayat perjalanan ini?')) {
       await supabase.from('assignments').delete().eq('id', id);
       await refreshData();
@@ -193,6 +208,7 @@ const App: React.FC = () => {
   };
 
   const handleSaveSkpd = async (newConfig: SKPDConfig) => {
+    if (!supabase) return;
     const dbData = {
       id: 'main', provinsi: newConfig.provinsi, nama_skpd: newConfig.namaSkpd, alamat: newConfig.alamat,
       lokasi: newConfig.lokasi, kepala_nama: newConfig.kepalaNama, kepala_nip: newConfig.kepalaNip,
@@ -201,26 +217,29 @@ const App: React.FC = () => {
     };
     await supabase.from('skpd_config').upsert(dbData);
     await refreshData();
-    alert("Profil SKPD Berhasil Disimpan di Cloud!");
+    alert("Profil SKPD Berhasil Disimpan!");
   };
 
   const updateAssignmentDestOfficial = async (assignmentId: string, destOfficialId: string) => {
+    if (!supabase) return;
     await supabase.from('assignments').update({ destination_official_id: destOfficialId }).eq('id', assignmentId);
     await refreshData();
   };
 
   const saveDestinationOfficial = async (official: DestinationOfficial) => {
+    if (!supabase) return;
     await supabase.from('destination_officials').upsert(official);
     await refreshData();
   };
 
   const deleteDestinationOfficial = async (id: string) => {
+    if (!supabase) return;
     await supabase.from('destination_officials').delete().eq('id', id);
     await refreshData();
   };
 
   const saveMasterCosts = async (costs: MasterCost[]) => {
-    // Kita hapus semua lalu insert ulang untuk sinkronisasi list (atau upsert per item)
+    if (!supabase) return;
     for (const c of costs) {
       await supabase.from('master_costs').upsert({
         destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging,
@@ -231,6 +250,7 @@ const App: React.FC = () => {
   };
 
   const saveSubActivities = async (subs: SubActivity[]) => {
+    if (!supabase) return;
     for (const s of subs) {
       await supabase.from('sub_activities').upsert({ code: s.code, name: s.name });
     }
@@ -254,34 +274,33 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
         <RefreshCw className="animate-spin mb-4 text-blue-500" size={48} />
-        <h2 className="text-xl font-black uppercase tracking-widest">Menghubungkan ke Cloud...</h2>
-        <p className="text-slate-400 text-sm mt-2">Sedang sinkronisasi data Supabase</p>
+        <h2 className="text-xl font-black uppercase tracking-widest text-center">Menghubungkan ke Cloud...</h2>
+        <p className="text-slate-400 text-sm mt-2 text-center">Sedang sinkronisasi data {OFFICE_NAME}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-red-50 p-6 text-center">
-        <AlertCircle size={64} className="text-red-500 mb-4" />
-        <h2 className="text-2xl font-black text-red-800 uppercase mb-2">Terjadi Kesalahan Koneksi</h2>
-        <p className="text-red-600 max-w-md font-medium mb-6">{error}</p>
-        <div className="bg-white p-6 rounded-2xl shadow-xl border border-red-100 text-left max-w-lg mb-8">
-           <h3 className="font-bold text-slate-800 mb-2">Cara Memperbaiki:</h3>
-           <ol className="text-xs text-slate-600 list-decimal pl-4 space-y-2">
-              <li>Pastikan **SUPABASE_URL** dan **SUPABASE_ANON_KEY** sudah diisi di Vercel Environment Variables.</li>
-              <li>Pastikan Tabel Database sudah dibuat melalui SQL Editor di Supabase.</li>
-              <li>Refresh halaman ini.</li>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
+        <AlertCircle size={64} className="text-red-500 mb-6" />
+        <h2 className="text-2xl font-black text-slate-800 uppercase mb-4">Masalah Koneksi Database</h2>
+        <div className="bg-white p-8 rounded-3xl shadow-2xl border border-red-100 text-left max-w-xl mb-8">
+           <p className="text-red-600 font-bold mb-4">{error}</p>
+           <h3 className="font-black text-slate-800 uppercase text-xs mb-3 flex items-center gap-2"><HardDrive size={16}/> Langkah Perbaikan:</h3>
+           <ol className="text-xs text-slate-500 list-decimal pl-4 space-y-3 font-medium uppercase tracking-wider">
+              <li>Pastikan Tabel sudah dibuat di **Supabase SQL Editor** menggunakan script yang diberikan.</li>
+              <li>Pastikan **SUPABASE_URL** & **SUPABASE_ANON_KEY** sudah benar di Vercel Settings.</li>
+              <li>Jika baru saja memasukkan variabel di Vercel, lakukan **Redeploy** atau tunggu 1-2 menit.</li>
            </ol>
         </div>
-        <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-8 py-3 rounded-xl font-black uppercase tracking-wider shadow-lg">Coba Lagi</button>
+        <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition active:scale-95">Refresh Aplikasi</button>
       </div>
     );
   }
 
-  // Preview Print Logic
   if (viewMode === ViewMode.PRINT_PREVIEW && activeAssignment) {
     const props = { assignment: activeAssignment, employees, skpd: skpdConfig, officials, destinationOfficials };
     return (
@@ -289,9 +308,9 @@ const App: React.FC = () => {
         <div className="no-print bg-white border-b p-4 sticky top-0 flex items-center justify-between z-50">
           <div className="flex items-center gap-4">
             <button onClick={() => setViewMode(ViewMode.PRINT_MENU)} className="p-2 hover:bg-gray-100 rounded-full transition"><ChevronLeft /></button>
-            <h2 className="font-bold text-gray-800 uppercase tracking-tight">Pratinjau - {printType}</h2>
+            <h2 className="font-bold text-gray-800 uppercase tracking-tight">Cetak - {printType}</h2>
           </div>
-          <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg"><Printer size={18} /> Cetak Sekarang</button>
+          <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 shadow-lg hover:bg-blue-700 transition"><Printer size={18} /> Cetak Sekarang</button>
         </div>
         <div className="p-4 sm:p-8 flex justify-center">
           {printType === PrintType.SPT && <SPTTemplate {...props} />}
@@ -307,57 +326,57 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 text-gray-900 font-sans">
-      <aside className="w-full md:w-64 bg-slate-900 text-white p-6 flex-shrink-0">
+      <aside className="w-full md:w-64 bg-slate-900 text-white p-6 flex-shrink-0 flex flex-col">
         <div className="flex items-center gap-3 mb-10">
           <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20"><FileText size={24} /></div>
           <h1 className="text-xl font-black tracking-tight italic">SIPD<span className="text-blue-500">CLOUD</span></h1>
         </div>
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1">
           {[
             { id: ViewMode.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-            { id: ViewMode.SKPD_CONFIG, label: 'Data SKPD', icon: Building2 },
+            { id: ViewMode.SKPD_CONFIG, label: 'Profil SKPD', icon: Building2 },
             { id: ViewMode.EMPLOYEE_LIST, label: 'Data Pegawai', icon: Users },
-            { id: ViewMode.TRAVEL_LIST, label: 'Perjalanan Dinas', icon: Calendar },
-            { id: ViewMode.MASTER_DATA, label: 'Data Master & Cloud', icon: Database },
+            { id: ViewMode.TRAVEL_LIST, label: 'Riwayat SPT', icon: Calendar },
+            { id: ViewMode.MASTER_DATA, label: 'Data Master', icon: Database },
             { id: ViewMode.REPORT, label: 'Laporan', icon: BarChart3 },
-            { id: ViewMode.PRINT_MENU, label: 'Cetak Dokumen', icon: Printer },
+            { id: ViewMode.PRINT_MENU, label: 'Pencetakan', icon: Printer },
           ].map(item => (
-            <button key={item.id} onClick={() => setViewMode(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${viewMode === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:bg-slate-800'}`}>
-              <item.icon size={20} /><span className="font-bold text-xs uppercase tracking-wider">{item.label}</span>
+            <button key={item.id} onClick={() => setViewMode(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${viewMode === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 font-black' : 'text-slate-400 hover:bg-slate-800 font-bold'}`}>
+              <item.icon size={20} /><span className="text-[11px] uppercase tracking-wider">{item.label}</span>
             </button>
           ))}
         </nav>
         
-        <div className="mt-auto pt-10">
+        <div className="mt-8">
           <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
              <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest flex items-center gap-1"><Cloud size={10}/> Cloud Sync Active</span>
+                <span className="text-[10px] font-black uppercase text-slate-300 tracking-widest flex items-center gap-1"><Cloud size={10}/> Cloud Connected</span>
              </div>
-             <p className="text-[9px] text-slate-500 leading-tight font-medium uppercase italic">Aplikasi terhubung ke database terpusat.</p>
+             <p className="text-[9px] text-slate-500 leading-tight font-bold uppercase italic">Sistem tersinkronisasi otomatis.</p>
           </div>
         </div>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8 flex justify-between items-start">
+        <header className="mb-8 flex justify-between items-start border-b border-slate-200 pb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
-              {viewMode === ViewMode.DASHBOARD ? 'Ringkasan Sistem' : 
-               viewMode === ViewMode.SKPD_CONFIG ? 'Profil SKPD' : 
-               viewMode === ViewMode.EMPLOYEE_LIST ? 'Manajemen Pegawai' : 
-               viewMode === ViewMode.MASTER_DATA ? 'Data Master & Cloud' :
+              {viewMode === ViewMode.DASHBOARD ? 'Dashboard Analytics' : 
+               viewMode === ViewMode.SKPD_CONFIG ? 'Profil Kantor' : 
+               viewMode === ViewMode.EMPLOYEE_LIST ? 'Data Pegawai' : 
+               viewMode === ViewMode.MASTER_DATA ? 'Konfigurasi Biaya' :
                viewMode === ViewMode.PRINT_MENU ? 'Cetak Dokumen' :
-               viewMode === ViewMode.TRAVEL_LIST ? 'Administrasi Perjalanan' :
-               viewMode === ViewMode.ADD_TRAVEL ? 'Form Perjalanan Dinas' :
-               viewMode === ViewMode.REPORT ? 'Laporan Riwayat Pegawai' :
-               'Sistem SIPD'}
+               viewMode === ViewMode.TRAVEL_LIST ? 'Administrasi SPT' :
+               viewMode === ViewMode.ADD_TRAVEL ? 'Form Perjalanan' :
+               viewMode === ViewMode.REPORT ? 'Rekap Pegawai' :
+               'Aplikasi SIPD'}
             </h2>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
               {skpdConfig.namaSkpd}
             </p>
           </div>
-          <button onClick={refreshData} className="p-2 text-slate-400 hover:text-blue-600 transition" title="Refresh Data">
+          <button onClick={refreshData} className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-blue-600 hover:border-blue-200 transition shadow-sm" title="Refresh Cloud Data">
             <RefreshCw size={20} />
           </button>
         </header>
@@ -365,38 +384,38 @@ const App: React.FC = () => {
         {viewMode === ViewMode.DASHBOARD && (
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4"><Users size={24} /></div>
                 <div className="text-3xl font-black text-slate-800">{employees.length}</div>
-                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Pegawai</div>
+                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Pegawai Aktif</div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><Calendar size={24} /></div>
                 <div className="text-3xl font-black text-slate-800">{assignments.length}</div>
-                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Total SPT</div>
+                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Total SPT Dibuat</div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4"><MapPin size={24} /></div>
                 <div className="text-3xl font-black text-slate-800">{masterCosts.length}</div>
-                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Lokasi Biaya</div>
+                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Titik Destinasi</div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <div className="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-4"><Activity size={24} /></div>
                 <div className="text-3xl font-black text-slate-800">{dashboardStats.dalamDaerahPct}%</div>
-                <div className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Aktivitas Lokal</div>
+                <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Rasio Lokal</div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-8">
                   <PieChart className="text-blue-600" size={24} />
-                  <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Cakupan Wilayah</h3>
+                  <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Cakupan Wilayah Dinas</h3>
                 </div>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-slate-500 uppercase">Dalam Daerah</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase">Dalam Daerah NTB</span>
                       <span className="text-lg font-black text-blue-600">{dashboardStats.dalamDaerahPct}%</span>
                     </div>
                     <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
@@ -405,7 +424,7 @@ const App: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex justify-between items-end mb-2">
-                      <span className="text-[10px] font-black text-slate-500 uppercase">Luar Daerah</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase">Luar Daerah NTB</span>
                       <span className="text-lg font-black text-emerald-600">{dashboardStats.luarDaerahPct}%</span>
                     </div>
                     <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
@@ -415,18 +434,19 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-8">
                   <MapPin className="text-red-500" size={24} />
-                  <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Top Destinasi NTB</h3>
+                  <h3 className="font-black text-slate-800 uppercase tracking-tight text-sm">Kab/Kota Terpopuler</h3>
                 </div>
                 <div className="space-y-4 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
                   {dashboardStats.ntbCounts.slice(0, 5).map((city, idx) => {
                     const maxCount = Math.max(...dashboardStats.ntbCounts.map(c => c.count)) || 1;
+                    if (city.count === 0) return null;
                     return (
                       <div key={city.name}>
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">{city.name}</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{city.name}</span>
                           <span className="text-xs font-black text-slate-800">{city.count}x</span>
                         </div>
                         <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden">
@@ -435,6 +455,7 @@ const App: React.FC = () => {
                       </div>
                     );
                   })}
+                  {assignments.length === 0 && <p className="text-center text-[10px] text-slate-300 italic font-black uppercase py-10">Belum ada data perjalanan</p>}
                 </div>
               </div>
             </div>
@@ -446,28 +467,31 @@ const App: React.FC = () => {
         {viewMode === ViewMode.TRAVEL_LIST && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
-              <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">Riwayat Perjalanan</h3>
-              <button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-blue-600/20 transition hover:bg-blue-700">
-                <Plus size={16} /> Tambah SPT
+              <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">Daftar Surat Tugas</h3>
+              <button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 active:scale-95">
+                <Plus size={16} /> Buat SPT Baru
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b">
-                  <tr><th className="px-6 py-4">Nomor & Maksud SPT</th><th className="px-6 py-4">Tujuan</th><th className="px-6 py-4 text-right">Aksi</th></tr>
+                  <tr><th className="px-6 py-4">Nomor & Maksud Dinas</th><th className="px-6 py-4">Destinasi</th><th className="px-6 py-4 text-right">Kelola</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {assignments.length === 0 ? (
-                    <tr><td colSpan={3} className="p-20 text-center text-slate-300 italic font-black uppercase tracking-widest">Belum ada riwayat SPT</td></tr>
+                    <tr><td colSpan={3} className="p-20 text-center text-slate-300 italic font-black uppercase tracking-widest">Database SPT Masih Kosong</td></tr>
                   ) : (
                     assignments.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-50 transition">
-                        <td className="px-6 py-4"><div className="text-[10px] font-black text-blue-600 uppercase mb-0.5">{item.assignmentNumber}</div><div className="text-xs font-bold text-slate-800 uppercase max-w-md truncate">{item.purpose}</div></td>
-                        <td className="px-6 py-4 text-xs font-black text-slate-700 uppercase">{item.destination}</td>
+                      <tr key={item.id} className="hover:bg-slate-50 transition group">
+                        <td className="px-6 py-4">
+                          <div className="text-[10px] font-black text-blue-600 uppercase mb-0.5">{item.assignmentNumber}</div>
+                          <div className="text-xs font-bold text-slate-800 uppercase max-w-lg truncate">{item.purpose}</div>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-black text-slate-600 uppercase">{item.destination}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button onClick={() => {setEditingAssignment(item); setViewMode(ViewMode.ADD_TRAVEL);}} className="text-blue-400 p-2 hover:bg-blue-50 rounded-lg transition"><Edit2 size={18}/></button>
-                            <button onClick={() => deleteAssignment(item.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg transition"><Trash2 size={18}/></button>
+                            <button onClick={() => deleteAssignment(item.id)} className="text-red-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition"><Trash2 size={18}/></button>
                           </div>
                         </td>
                       </tr>
@@ -485,25 +509,23 @@ const App: React.FC = () => {
             onSaveCosts={saveMasterCosts} 
             subActivities={subActivities} 
             onSaveSubs={saveSubActivities}
-            onReset={() => { if(confirm("Hapus seluruh data di Cloud?")) supabase.rpc('truncate_all_tables'); }}
+            onReset={() => { if(confirm("Hapus seluruh data di Cloud?")) supabase?.rpc('truncate_all_tables'); }}
           />
         )}
 
         {viewMode === ViewMode.PRINT_MENU && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b bg-slate-50/50 flex justify-between items-center">
-              <div>
-                <h3 className="font-black text-slate-800 text-lg uppercase">Cetak Dokumen Administrasi</h3>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Sinkronisasi SPPD (B) memerlukan Pejabat Tujuan</p>
-              </div>
+            <div className="p-6 border-b bg-slate-50/50">
+              <h3 className="font-black text-slate-800 text-lg uppercase">Dokumen Siap Cetak</h3>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 italic">Pilih dokumen yang ingin dicetak sesuai kebutuhan administrasi</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b">
                   <tr>
-                    <th className="px-6 py-4">Informasi SPT</th>
+                    <th className="px-6 py-4">Maksud Perjalanan</th>
                     <th className="px-6 py-4">Pejabat Tujuan</th>
-                    <th className="px-6 py-4">Pilih Dokumen</th>
+                    <th className="px-6 py-4">Panel Cetak</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -517,34 +539,35 @@ const App: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           {destOff ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <div>
                                 <div className="text-[10px] font-black text-slate-700 uppercase">{destOff.name}</div>
                                 <div className="text-[9px] text-slate-400 font-bold uppercase">{destOff.jabatan}</div>
                               </div>
-                              <button onClick={() => setShowDestManager(item.id)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition"><UserCog size={14}/></button>
+                              <button onClick={() => setShowDestManager(item.id)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><UserCog size={16}/></button>
                             </div>
                           ) : (
-                            <button onClick={() => setShowDestManager(item.id)} className="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border border-amber-200">Set TTD Tujuan</button>
+                            <button onClick={() => setShowDestManager(item.id)} className="text-amber-600 bg-amber-50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border border-amber-200 hover:bg-amber-100 transition">Set TTD Tujuan</button>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-2">
                             {[
                               { label: 'SPT', type: PrintType.SPT },
-                              { label: 'SPPD (D)', type: PrintType.SPPD_FRONT },
-                              { label: 'SPPD (B)', type: PrintType.SPPD_BACK },
+                              { label: 'SPD (D)', type: PrintType.SPPD_FRONT },
+                              { label: 'SPD (B)', type: PrintType.SPPD_BACK },
                               { label: 'Kuitansi', type: PrintType.KUITANSI },
                               { label: 'Rincian', type: PrintType.LAMPIRAN_III },
                               { label: 'Daftar', type: PrintType.DAFTAR_PENERIMAAN }
                             ].map(btn => (
-                              <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition shadow-sm">{btn.label}</button>
+                              <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition shadow-sm bg-white">{btn.label}</button>
                             ))}
                           </div>
                         </td>
                       </tr>
                     );
                   })}
+                  {assignments.length === 0 && <tr><td colSpan={3} className="p-10 text-center text-slate-300 italic uppercase font-black text-xs">Belum ada SPT untuk dicetak</td></tr>}
                 </tbody>
               </table>
             </div>

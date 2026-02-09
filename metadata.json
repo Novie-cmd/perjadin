@@ -1,0 +1,5 @@
+{
+  "name": "Sistem Informasi Perjalanan Dinas (SIPD-Lite)",
+  "description": "Aplikasi manajemen administrasi perjalanan dinas untuk pengelolaan data pegawai, surat tugas, dan pencetakan dokumen kuitansi serta rincian biaya.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,99 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPD - Perjalanan Dinas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --legal-width: 215.9mm;
+        --legal-height: 330mm; /* Changed to standard F4/Legal commonly used in ID gov */
+      }
+
+      @media print {
+        .no-print { display: none !important; }
+        body { background: white; margin: 0; padding: 0; color: black !important; }
+        
+        .print-page { 
+          width: var(--legal-width); 
+          min-height: var(--legal-height); 
+          padding: 15mm 15mm; 
+          margin: 0 auto;
+          page-break-after: always;
+          box-sizing: border-box;
+          position: relative;
+          background: white !important;
+          font-family: 'Tahoma', 'Verdana', sans-serif !important;
+        }
+        
+        .landscape-page {
+          width: var(--legal-height);
+          min-height: var(--legal-width);
+          padding: 10mm 10mm;
+          page-break-after: always;
+          box-sizing: border-box;
+          position: relative;
+          background: white !important;
+          font-family: 'Tahoma', 'Verdana', sans-serif !important;
+        }
+
+        @page {
+          size: legal;
+          margin: 0mm;
+        }
+
+        table { border-collapse: collapse !important; }
+        td, th { border-color: black !important; }
+      }
+
+      @media screen {
+        .print-page, .landscape-page {
+          font-family: 'Tahoma', 'Verdana', sans-serif !important;
+        }
+        
+        .print-page {
+          width: var(--legal-width);
+          min-height: var(--legal-height);
+          background: white;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+          margin: 2rem auto;
+          padding: 15mm;
+          box-sizing: border-box;
+          border: 1px solid #e5e7eb;
+        }
+
+        .landscape-page {
+          width: var(--legal-height);
+          min-height: var(--legal-width);
+          background: white;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+          margin: 2rem auto;
+          padding: 10mm;
+          box-sizing: border-box;
+          border: 1px solid #e5e7eb;
+        }
+      }
+
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: #f1f1f1; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
+  }
+}
+</script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="root"></div>
+</body>
+</html>

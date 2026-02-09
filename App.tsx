@@ -339,7 +339,6 @@ const App: React.FC = () => {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-               {/* Pie Chart Travel Type */}
                <div className="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[400px]">
                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
                     <PieIcon size={16} className="text-blue-600"/> Perbandingan Wilayah Perjalanan
@@ -369,7 +368,6 @@ const App: React.FC = () => {
                   </div>
                </div>
 
-               {/* Bar Chart NTB Destinations */}
                <div className="lg:col-span-7 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[400px]">
                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
                     <Map size={16} className="text-emerald-600"/> Distribusi Tujuan Kab/Kota di NTB
@@ -479,18 +477,16 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.ADD_TRAVEL && (
           <div className="space-y-4">
-             <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-2"><MapPin className="text-blue-600" size={18}/><h3 className="font-black text-xs uppercase tracking-widest">Konfigurasi Perjalanan</h3></div>
-                <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-slate-200 hover:bg-slate-200 transition"><UserCheck size={14}/> Kelola Pejabat Tujuan</button>
-             </div>
              <TravelAssignmentForm 
                employees={employees} 
                masterCosts={masterCosts} 
                subActivities={subActivities} 
                officials={officials}
+               destinationOfficials={destinationOfficials}
                initialData={editingAssignment || undefined}
                onSave={handleSaveAssignment}
                onCancel={() => { setViewMode(ViewMode.TRAVEL_LIST); setEditingAssignment(null); }}
+               onManageDest={() => setShowDestManager(true)}
              />
           </div>
         )}
@@ -499,19 +495,57 @@ const App: React.FC = () => {
           <MasterDataForm 
             masterCosts={masterCosts} 
             subActivities={subActivities}
-            onSaveCosts={async (costs) => {
+            onSaveCost={async (cost) => {
               if (supabase) {
-                for (const c of costs) {
-                  await supabase.from('master_costs').upsert({
-                    destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging,
-                    transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport, taxi: c.taxi
-                  });
-                }
+                await supabase.from('master_costs').upsert({
+                  destination: cost.destination, daily_allowance: cost.dailyAllowance, lodging: cost.lodging,
+                  transport_bbm: cost.transportBbm, sea_transport: cost.seaTransport, air_transport: cost.airTransport, taxi: cost.taxi
+                });
                 await refreshData();
               }
             }}
-            onSaveSubs={async (subs) => {
-               if (supabase) { for (const s of subs) { await supabase.from('sub_activities').upsert(s); } await refreshData(); }
+            onDeleteCost={async (destination) => {
+              if (supabase) {
+                await supabase.from('master_costs').delete().eq('destination', destination);
+                await refreshData();
+              }
+            }}
+            onClearCosts={async () => {
+              if (supabase) {
+                await supabase.from('master_costs').delete().neq('destination', '___CLEAR_ALL___');
+                await refreshData();
+              }
+            }}
+            onSaveSub={async (sub) => {
+              if (supabase) {
+                await supabase.from('sub_activities').upsert({
+                  code: sub.code, name: sub.name, budget_code: sub.budgetCode
+                });
+                await refreshData();
+              }
+            }}
+            onDeleteSub={async (code) => {
+              if (supabase) {
+                await supabase.from('sub_activities').delete().eq('code', code);
+                await refreshData();
+              }
+            }}
+            onClearSubs={async () => {
+              if (supabase) {
+                await supabase.from('sub_activities').delete().neq('code', '___CLEAR_ALL___');
+                await refreshData();
+              }
+            }}
+            onExport={() => {
+              const data = JSON.stringify({ 
+                employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments 
+              }, null, 2);
+              const blob = new Blob([data], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `backup_sipd_lite_${new Date().toISOString().split('T')[0]}.json`;
+              a.click();
             }}
           />
         )}
@@ -551,7 +585,7 @@ const App: React.FC = () => {
           <DestinationOfficialManager 
             officials={destinationOfficials}
             onClose={() => setShowDestManager(false)}
-            onSelect={(id) => { /* Logic to select in assignment if needed */ setShowDestManager(false); }}
+            onSelect={(id) => { setShowDestManager(false); }}
             onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }}
             onDelete={async (id) => { if(supabase && confirm('Hapus?')) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }}
           />

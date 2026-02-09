@@ -7,9 +7,13 @@ import * as XLSX from 'xlsx';
 
 interface Props {
   masterCosts: MasterCost[];
-  onSaveCosts: (costs: MasterCost[]) => void;
+  onSaveCost: (cost: MasterCost) => void;
+  onDeleteCost: (destination: string) => void;
+  onClearCosts: () => void;
   subActivities: SubActivity[];
-  onSaveSubs: (subs: SubActivity[]) => void;
+  onSaveSub: (sub: SubActivity) => void;
+  onDeleteSub: (code: string) => void;
+  onClearSubs: () => void;
   onExport?: () => void;
   onImport?: (file: File) => void;
   onReset?: () => void;
@@ -18,7 +22,8 @@ interface Props {
 type Tab = 'COSTS' | 'SUBS' | 'SYNC';
 
 export const MasterDataForm: React.FC<Props> = ({ 
-  masterCosts, onSaveCosts, subActivities, onSaveSubs, 
+  masterCosts, onSaveCost, onDeleteCost, onClearCosts,
+  subActivities, onSaveSub, onDeleteSub, onClearSubs,
   onExport, onImport, onReset 
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('COSTS');
@@ -55,28 +60,25 @@ export const MasterDataForm: React.FC<Props> = ({
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-      const newCosts: MasterCost[] = [];
-
+      let count = 0;
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
-        if (!row || row.length === 0) continue;
+        if (!row || row.length < 7) continue;
         
-        if (row.length >= 7) {
-          newCosts.push({
-            destination: String(row[0] || '').trim(),
-            dailyAllowance: Number(row[1]) || 0,
-            lodging: Number(row[2]) || 0,
-            transportBbm: Number(row[3]) || 0,
-            seaTransport: Number(row[4]) || 0,
-            airTransport: Number(row[5]) || 0,
-            taxi: Number(row[6]) || 0
-          });
-        }
+        onSaveCost({
+          destination: String(row[0] || '').trim(),
+          dailyAllowance: Number(row[1]) || 0,
+          lodging: Number(row[2]) || 0,
+          transportBbm: Number(row[3]) || 0,
+          seaTransport: Number(row[4]) || 0,
+          airTransport: Number(row[5]) || 0,
+          taxi: Number(row[6]) || 0
+        });
+        count++;
       }
       
-      if (newCosts.length > 0) {
-        onSaveCosts([...masterCosts, ...newCosts]);
-        alert(`Berhasil mengimpor ${newCosts.length} data biaya dari Excel.`);
+      if (count > 0) {
+        alert(`Berhasil mengimpor ${count} data biaya dari Excel.`);
       } else {
         alert("Format data Excel tidak sesuai. Pastikan minimal ada 7 kolom data.");
       }
@@ -97,23 +99,20 @@ export const MasterDataForm: React.FC<Props> = ({
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-      const newSubs: SubActivity[] = [];
-
+      let count = 0;
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
-        if (!row || row.length === 0) continue;
+        if (!row || row.length < 2) continue;
         
-        if (row.length >= 2) {
-          newSubs.push({
-            code: String(row[0] || '').trim(),
-            name: String(row[1] || '').trim()
-          });
-        }
+        onSaveSub({
+          code: String(row[0] || '').trim(),
+          name: String(row[1] || '').trim()
+        });
+        count++;
       }
       
-      if (newSubs.length > 0) {
-        onSaveSubs([...subActivities, ...newSubs]);
-        alert(`Berhasil mengimpor ${newSubs.length} data sub kegiatan dari Excel.`);
+      if (count > 0) {
+        alert(`Berhasil mengimpor ${count} data sub kegiatan dari Excel.`);
       } else {
         alert("Format data Excel tidak sesuai. Pastikan ada kolom Kode Rekening dan Nama Sub Kegiatan.");
       }
@@ -124,11 +123,7 @@ export const MasterDataForm: React.FC<Props> = ({
 
   const handleAddCost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingCost) {
-      onSaveCosts(masterCosts.map(c => c.destination === editingCost ? costForm : c));
-    } else {
-      onSaveCosts([...masterCosts, costForm]);
-    }
+    onSaveCost(costForm);
     resetCostForm();
   };
 
@@ -140,11 +135,7 @@ export const MasterDataForm: React.FC<Props> = ({
 
   const handleAddSub = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingSub) {
-      onSaveSubs(subActivities.map(s => s.code === editingSub ? subForm : s));
-    } else {
-      onSaveSubs([...subActivities, subForm]);
-    }
+    onSaveSub(subForm);
     resetSubForm();
   };
 
@@ -168,25 +159,13 @@ export const MasterDataForm: React.FC<Props> = ({
     setActiveTab('SUBS');
   };
 
-  const handleDeleteCost = (destination: string) => {
-    if (confirm(`Hapus data biaya untuk tujuan ${destination}?`)) {
-      onSaveCosts(masterCosts.filter(c => c.destination !== destination));
-    }
-  };
-
-  const handleDeleteSub = (code: string) => {
-    if (confirm(`Hapus data sub kegiatan dengan kode ${code}?`)) {
-      onSaveSubs(subActivities.filter(s => s.code !== code));
-    }
-  };
-
   const handleClearAll = () => {
-    const targetName = activeTab === 'COSTS' ? 'seluruh data Master Biaya' : 'seluruh data Sub Kegiatan';
-    if (confirm(`PERHATIAN: Apakah Anda yakin ingin menghapus ${targetName}? Tindakan ini tidak dapat dibatalkan.`)) {
+    const targetName = activeTab === 'COSTS' ? 'SELURUH data Master Biaya' : 'SELURUH data Sub Kegiatan';
+    if (confirm(`PERHATIAN: Apakah Anda yakin ingin menghapus ${targetName}? Tindakan ini akan menghapus data secara permanen dari database.`)) {
       if (activeTab === 'COSTS') {
-        onSaveCosts([]);
+        onClearCosts();
       } else {
-        onSaveSubs([]);
+        onClearSubs();
       }
     }
   };
@@ -251,72 +230,31 @@ export const MasterDataForm: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Sync Tab UI */}
+        {/* Sync Tab UI - Keep existing sync logic */}
         {activeTab === 'SYNC' && (
           <div className="p-8 space-y-8 animate-in fade-in duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Export Card */}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
                 <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
                   <Download size={28} />
                 </div>
                 <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Cadangkan (Ekspor) Database</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
-                  Gunakan fitur ini untuk menyimpan seluruh data Anda (Profil, Pegawai, SPT, Biaya) ke dalam satu file. File ini dapat Anda kirimkan ke rekan kerja untuk dibagikan.
-                </p>
-                <button 
-                  onClick={onExport}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
-                >
-                  Unduh File Database (.json)
-                </button>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">Simpan seluruh data ke dalam file .json untuk cadangan atau berbagi.</p>
+                <button onClick={onExport} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100">Unduh File Database (.json)</button>
               </div>
-
-              {/* Import Card */}
               <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
                 <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
                   <Upload size={28} />
                 </div>
                 <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Sinkronkan (Impor) Database</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
-                  Pilih file cadangan (.json) dari rekan kerja atau perangkat lain untuk disalin ke aplikasi ini. Data lama Anda akan digantikan dengan data baru.
-                </p>
-                <button 
-                  onClick={() => dbInputRef.current?.click()}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
-                >
-                  Unggah File & Sinkronisasi
-                </button>
-                <input 
-                  type="file" 
-                  ref={dbInputRef} 
-                  accept=".json" 
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file && onImport) onImport(file);
-                    e.target.value = '';
-                  }} 
-                />
+                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">Unggah file .json untuk menyalin data ke aplikasi ini.</p>
+                <button onClick={() => dbInputRef.current?.click()} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">Unggah File & Sinkronisasi</button>
+                <input type="file" ref={dbInputRef} accept=".json" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file && onImport) onImport(file);
+                  e.target.value = '';
+                }} />
               </div>
-            </div>
-
-            <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-white text-red-600 rounded-xl flex items-center justify-center shadow-sm">
-                  <RefreshCw size={20} />
-                </div>
-                <div>
-                  <h5 className="text-[10px] font-black text-red-800 uppercase tracking-widest">Reset Ulang Sistem</h5>
-                  <p className="text-[10px] text-red-600 font-bold uppercase mt-1">Hapus seluruh data untuk mengganti SKPD atau memulai dari awal</p>
-                </div>
-              </div>
-              <button 
-                onClick={onReset}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition shadow-sm"
-              >
-                Reset Semua Data
-              </button>
             </div>
           </div>
         )}
@@ -328,7 +266,7 @@ export const MasterDataForm: React.FC<Props> = ({
               <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Tujuan</label>
               <input 
                 required 
-                className={`w-full p-2 border rounded text-sm font-medium ${editingCost ? 'bg-gray-100' : ''}`} 
+                className={`w-full p-2 border rounded text-sm font-medium ${editingCost ? 'bg-gray-100 cursor-not-allowed' : ''}`} 
                 value={costForm.destination} 
                 onChange={e => setCostForm({...costForm, destination: e.target.value})}
                 readOnly={!!editingCost}
@@ -372,7 +310,7 @@ export const MasterDataForm: React.FC<Props> = ({
               <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">Kode Rekening</label>
               <input 
                 required 
-                className={`w-full p-2 border rounded text-sm font-mono font-bold ${editingSub ? 'bg-gray-100' : ''}`} 
+                className={`w-full p-2 border rounded text-sm font-mono font-bold ${editingSub ? 'bg-gray-100 cursor-not-allowed' : ''}`} 
                 value={subForm.code} 
                 onChange={e => setSubForm({...subForm, code: e.target.value})} 
                 readOnly={!!editingSub}
@@ -426,7 +364,7 @@ export const MasterDataForm: React.FC<Props> = ({
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-1">
                             <button onClick={() => handleEditCost(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
-                            <button onClick={() => handleDeleteCost(item.destination)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
+                            <button onClick={() => { if(confirm('Hapus?')) onDeleteCost(item.destination); }} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
                           </div>
                         </td>
                       </tr>
@@ -454,7 +392,7 @@ export const MasterDataForm: React.FC<Props> = ({
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-1">
                             <button onClick={() => handleEditSub(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
-                            <button onClick={() => handleDeleteSub(item.code)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
+                            <button onClick={() => { if(confirm('Hapus?')) onDeleteSub(item.code); }} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
                           </div>
                         </td>
                       </tr>
@@ -466,13 +404,6 @@ export const MasterDataForm: React.FC<Props> = ({
           </div>
         )}
       </div>
-      
-      {activeTab !== 'SYNC' && (activeTab === 'COSTS' ? masterCosts.length > 0 : subActivities.length > 0) && (
-        <div className="flex items-center gap-2 text-[10px] text-slate-400 bg-white p-4 rounded-xl border border-slate-100 italic">
-          <AlertTriangle size={14} className="text-amber-500" />
-          Tips: Data Master akan digunakan secara otomatis sebagai referensi default saat membuat Perjalanan Dinas baru berdasarkan Tujuan atau Sub Kegiatan.
-        </div>
-      )}
     </div>
   );
 };

@@ -1,20 +1,33 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
+import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official, DestinationOfficial } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck } from 'lucide-react';
+import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck, Settings2 } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
   masterCosts: MasterCost[];
   subActivities: SubActivity[];
   officials: Official[];
+  destinationOfficials: DestinationOfficial[];
   initialData?: TravelAssignment;
   onSave: (data: TravelAssignment) => void;
   onCancel: () => void;
+  onManageDest: () => void;
 }
 
-export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, subActivities, officials, initialData, onSave, onCancel }) => {
+export const TravelAssignmentForm: React.FC<Props> = ({ 
+  employees, 
+  masterCosts, 
+  subActivities, 
+  officials, 
+  destinationOfficials,
+  initialData, 
+  onSave, 
+  onCancel,
+  onManageDest
+}) => {
   const [formData, setFormData] = useState<Partial<TravelAssignment>>(() => {
     if (initialData) return initialData;
     
@@ -39,7 +52,8 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || ''
+      bendaharaId: defaultBendahara?.id || '',
+      destinationOfficialId: ''
     };
   });
 
@@ -63,7 +77,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
       const days = calculateDays(formData.startDate, formData.endDate);
       setFormData(prev => ({ ...prev, durationDays: days }));
       
-      // Update existing costs duration days
       setFormData(prev => ({
         ...prev,
         costs: (prev.costs || []).map(c => ({
@@ -175,8 +188,17 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in duration-300">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800">
-          <Save className="text-blue-600" size={20} /> {initialData ? 'Edit Data Perjalanan' : 'Data Umum Perjalanan'}
+        <h3 className="text-lg font-semibold mb-4 flex items-center justify-between text-slate-800">
+          <div className="flex items-center gap-2">
+             <Save className="text-blue-600" size={20} /> {initialData ? 'Edit Data Perjalanan' : 'Data Umum Perjalanan'}
+          </div>
+          <button 
+            type="button"
+            onClick={onManageDest}
+            className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-200 hover:bg-slate-200 transition"
+          >
+            <Settings2 size={14}/> Kelola Pejabat Tujuan
+          </button>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -213,10 +235,10 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
             />
           </div>
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-             <div>
+             <div className="lg:col-span-2">
                 <label className="block text-xs font-black text-slate-500 uppercase mb-2">Kategori Wilayah</label>
                 <div className="flex gap-4">
-                   <label className="flex items-center gap-2 cursor-pointer group bg-white px-3 py-2 rounded-lg border border-slate-200">
+                   <label className="flex-1 flex items-center gap-2 cursor-pointer group bg-white px-3 py-2.5 rounded-lg border border-slate-200">
                       <input 
                         type="radio" 
                         name="travelType" 
@@ -226,7 +248,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
                       />
                       <span className="text-xs font-black group-hover:text-blue-600 uppercase">Dalam Daerah</span>
                    </label>
-                   <label className="flex items-center gap-2 cursor-pointer group bg-white px-3 py-2 rounded-lg border border-slate-200">
+                   <label className="flex-1 flex items-center gap-2 cursor-pointer group bg-white px-3 py-2.5 rounded-lg border border-slate-200">
                       <input 
                         type="radio" 
                         name="travelType" 
@@ -264,6 +286,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
                  )}
                </select>
              </div>
+             
              <div>
                <label className="block text-xs font-black text-slate-500 uppercase mb-2 flex items-center gap-1">
                  <Truck size={12} className="text-blue-500" /> Transportasi
@@ -276,6 +299,24 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
                >
                  {TRANSPORTATION_MODES.map(mode => <option key={mode} value={mode}>{mode}</option>)}
                </select>
+             </div>
+
+             <div className="lg:col-span-3">
+               <label className="block text-xs font-black text-slate-500 uppercase mb-2 flex items-center gap-1">
+                 <UserCheck size={12} className="text-emerald-500" /> Pejabat Pengesah di Tempat Tujuan (SPPD Belakang)
+               </label>
+               <div className="flex gap-2">
+                 <select 
+                   className="flex-1 p-2.5 border border-emerald-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-emerald-100 font-bold text-slate-700"
+                   value={formData.destinationOfficialId}
+                   onChange={e => setFormData({...formData, destinationOfficialId: e.target.value})}
+                 >
+                   <option value="">-- Pilih Pejabat Kantor Tujuan --</option>
+                   {destinationOfficials.map(off => (
+                     <option key={off.id} value={off.id}>{off.name} ({off.jabatan} - {off.instansi})</option>
+                   ))}
+                 </select>
+               </div>
              </div>
           </div>
           <div>
@@ -332,7 +373,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({ employees, masterCosts, 
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight">
-          <UserCheck className="text-blue-600" size={20} /> Penanda Tangan Dokumen
+          <UserCheck className="text-blue-600" size={20} /> Penanda Tangan Dokumen Internal
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1">

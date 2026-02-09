@@ -18,7 +18,7 @@ import {
   DaftarPenerimaanTemplate 
 } from './components/PrintDocuments';
 import { 
-  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search, PieChart as PieIcon, Map
+  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search, PieChart as PieIcon, Map, Settings2
 } from 'lucide-react';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
 import { 
@@ -138,7 +138,7 @@ const App: React.FC = () => {
       
       if (costData) setMasterCosts(costData.map(c => ({
         destination: c.destination, dailyAllowance: c.daily_allowance, lodging: c.lodging,
-        transportBbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi
+        transportBbm: c.transport_bbm, seaTransport: c.sea_transport, airTransport: c.air_transport, taxi: c.taxi
       })));
 
       if (subData) setSubActivities(subData);
@@ -199,6 +199,12 @@ const App: React.FC = () => {
     await refreshData();
     setEditingAssignment(null);
     setViewMode(ViewMode.TRAVEL_LIST);
+  };
+
+  const handleUpdateDestinationOfficial = async (assignmentId: string, officialId: string) => {
+    if (!supabase) return;
+    await supabase.from('assignments').update({ destination_official_id: officialId }).eq('id', assignmentId);
+    await refreshData();
   };
 
   if (loading) return (
@@ -486,7 +492,6 @@ const App: React.FC = () => {
                initialData={editingAssignment || undefined}
                onSave={handleSaveAssignment}
                onCancel={() => { setViewMode(ViewMode.TRAVEL_LIST); setEditingAssignment(null); }}
-               onManageDest={() => setShowDestManager(true)}
              />
           </div>
         )}
@@ -554,14 +559,48 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.PRINT_MENU && (
            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in duration-500">
-              <div className="p-6 border-b flex items-center gap-3 bg-slate-50/50"><Printer size={20} className="text-blue-600" /><h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Daftar SPT Siap Cetak</h3></div>
+              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <Printer size={20} className="text-blue-600" />
+                  <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Daftar SPT Siap Cetak</h3>
+                </div>
+                <button 
+                  onClick={() => setShowDestManager(true)}
+                  className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-300 transition"
+                >
+                  <Settings2 size={14}/> Kelola Pejabat Tujuan
+                </button>
+              </div>
               <div className="overflow-x-auto">
                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-widest border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4">Nomor & Tujuan</th>
+                        <th className="px-6 py-4">Pejabat Pengesah (Tujuan)</th>
+                        <th className="px-6 py-4 text-right">Opsi Cetak</th>
+                      </tr>
+                    </thead>
                     <tbody className="divide-y divide-slate-100">
                        {assignments.map(item => (
                          <tr key={item.id} className="hover:bg-slate-50 transition">
-                            <td className="px-6 py-5"><div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div><div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div></td>
-                            <td className="px-6 py-5"><div className="flex gap-2 flex-wrap">
+                            <td className="px-6 py-5">
+                              <div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div>
+                              <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <select 
+                                className="w-full max-w-[220px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white text-slate-700"
+                                value={item.destinationOfficialId || ''}
+                                onChange={(e) => handleUpdateDestinationOfficial(item.id, e.target.value)}
+                              >
+                                <option value="">-- Pilih Pejabat Tujuan --</option>
+                                {destinationOfficials.map(doff => (
+                                  <option key={doff.id} value={doff.id}>{doff.name} ({doff.jabatan})</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <div className="flex gap-2 flex-wrap justify-end">
                                {[
                                  { label: 'SPT', type: PrintType.SPT, color: 'blue' },
                                  { label: 'SPD Depan', type: PrintType.SPPD_FRONT, color: 'emerald' },
@@ -570,9 +609,16 @@ const App: React.FC = () => {
                                  { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
                                  { label: 'Daftar Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
                                ].map(btn => (
-                                 <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : ''} ${btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : ''} ${btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : ''} ${btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : ''} ${btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' : ''}`}>{btn.label}</button>
+                                 <button 
+                                   key={btn.type} 
+                                   onClick={() => { setActiveAssignment(item); setPrintType(btn.type); setViewMode(ViewMode.PRINT_PREVIEW); }} 
+                                   className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : ''} ${btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : ''} ${btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : ''} ${btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : ''} ${btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' : ''}`}
+                                 >
+                                   {btn.label}
+                                 </button>
                                ))}
-                            </div></td>
+                              </div>
+                            </td>
                          </tr>
                        ))}
                     </tbody>

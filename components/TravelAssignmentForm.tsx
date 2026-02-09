@@ -14,7 +14,6 @@ interface Props {
   initialData?: TravelAssignment;
   onSave: (data: TravelAssignment) => void;
   onCancel: () => void;
-  onManageDest: () => void;
 }
 
 export const TravelAssignmentForm: React.FC<Props> = ({ 
@@ -25,8 +24,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
   destinationOfficials,
   initialData, 
   onSave, 
-  onCancel,
-  onManageDest
+  onCancel
 }) => {
   const [formData, setFormData] = useState<Partial<TravelAssignment>>(() => {
     if (initialData) return initialData;
@@ -52,8 +50,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || '',
-      destinationOfficialId: ''
+      bendaharaId: defaultBendahara?.id || ''
     };
   });
 
@@ -192,13 +189,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
           <div className="flex items-center gap-2">
              <Save className="text-blue-600" size={20} /> {initialData ? 'Edit Data Perjalanan' : 'Data Umum Perjalanan'}
           </div>
-          <button 
-            type="button"
-            onClick={onManageDest}
-            className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-200 hover:bg-slate-200 transition"
-          >
-            <Settings2 size={14}/> Kelola Pejabat Tujuan
-          </button>
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -299,24 +289,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
                >
                  {TRANSPORTATION_MODES.map(mode => <option key={mode} value={mode}>{mode}</option>)}
                </select>
-             </div>
-
-             <div className="lg:col-span-3">
-               <label className="block text-xs font-black text-slate-500 uppercase mb-2 flex items-center gap-1">
-                 <UserCheck size={12} className="text-emerald-500" /> Pejabat Pengesah di Tempat Tujuan (SPPD Belakang)
-               </label>
-               <div className="flex gap-2">
-                 <select 
-                   className="flex-1 p-2.5 border border-emerald-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-emerald-100 font-bold text-slate-700"
-                   value={formData.destinationOfficialId}
-                   onChange={e => setFormData({...formData, destinationOfficialId: e.target.value})}
-                 >
-                   <option value="">-- Pilih Pejabat Kantor Tujuan --</option>
-                   {destinationOfficials.map(off => (
-                     <option key={off.id} value={off.id}>{off.name} ({off.jabatan} - {off.instansi})</option>
-                   ))}
-                 </select>
-               </div>
              </div>
           </div>
           <div>

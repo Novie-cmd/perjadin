@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { ViewMode, Employee, TravelAssignment, PrintType, MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
@@ -18,9 +18,13 @@ import {
   DaftarPenerimaanTemplate 
 } from './components/PrintDocuments';
 import { 
-  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search
+  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search, PieChart as PieIcon, Map
 } from 'lucide-react';
-import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
+import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList 
+} from 'recharts';
 
 const getEnv = (key: string) => {
   try {
@@ -65,6 +69,21 @@ const App: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
+
+  // Data Calculations for Dashboard
+  const dashboardStats = useMemo(() => {
+    const travelTypeData = [
+      { name: 'Dalam Daerah', value: assignments.filter(a => a.travelType === 'DALAM_DAERAH').length, color: '#3b82f6' },
+      { name: 'Luar Daerah', value: assignments.filter(a => a.travelType === 'LUAR_DAERAH').length, color: '#f59e0b' }
+    ];
+
+    const ntbDestData = LIST_KOTA_NTB.map(city => ({
+      name: city,
+      jumlah: assignments.filter(a => a.travelType === 'DALAM_DAERAH' && a.destination === city).length
+    })).filter(d => d.jumlah > 0).sort((a, b) => b.jumlah - a.jumlah);
+
+    return { travelTypeData, ntbDestData };
+  }, [assignments]);
 
   const refreshData = async () => {
     if (!supabase) {
@@ -273,11 +292,122 @@ const App: React.FC = () => {
 
         {/* Views Mapping */}
         {viewMode === ViewMode.DASHBOARD && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><Users className="text-blue-600 mb-2"/><div className="text-3xl font-black">{employees.length}</div><div className="text-slate-400 text-[10px] font-black uppercase">Pegawai</div></div>
-             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><Calendar className="text-emerald-600 mb-2"/><div className="text-3xl font-black">{assignments.length}</div><div className="text-slate-400 text-[10px] font-black uppercase">SPT Riwayat</div></div>
-             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><Database className="text-amber-600 mb-2"/><div className="text-3xl font-black">{masterCosts.length}</div><div className="text-slate-400 text-[10px] font-black uppercase">Titik Biaya</div></div>
-             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><Cloud className="text-purple-600 mb-2"/><div className="text-3xl font-black">ON</div><div className="text-slate-400 text-[10px] font-black uppercase">Status Cloud</div></div>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Top Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <Users className="text-blue-600" size={24}/>
+                    <span className="text-blue-500 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter">Personel</span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black">{employees.length}</div>
+                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Total Pegawai</div>
+                  </div>
+               </div>
+               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <Calendar className="text-emerald-600" size={24}/>
+                    <span className="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter">Penugasan</span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black">{assignments.length}</div>
+                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">SPT Terbit</div>
+                  </div>
+               </div>
+               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <Database className="text-amber-600" size={24}/>
+                    <span className="text-amber-500 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter">Regional</span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black">{masterCosts.length}</div>
+                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Titik Biaya</div>
+                  </div>
+               </div>
+               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <Cloud className="text-purple-600" size={24}/>
+                    <span className="text-purple-500 bg-purple-50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter">Database</span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="text-3xl font-black">Connected</div>
+                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Status Sinkronisasi</div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+               {/* Pie Chart Travel Type */}
+               <div className="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[400px]">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
+                    <PieIcon size={16} className="text-blue-600"/> Perbandingan Wilayah Perjalanan
+                  </h3>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={dashboardStats.travelTypeData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {dashboardStats.travelTypeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                        />
+                        <Legend verticalAlign="bottom" height={36}/>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+               </div>
+
+               {/* Bar Chart NTB Destinations */}
+               <div className="lg:col-span-7 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[400px]">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
+                    <Map size={16} className="text-emerald-600"/> Distribusi Tujuan Kab/Kota di NTB
+                  </h3>
+                  <div className="h-[300px]">
+                    {dashboardStats.ntbDestData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          layout="vertical"
+                          data={dashboardStats.ntbDestData}
+                          margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                            width={100}
+                          />
+                          <Tooltip 
+                            cursor={{ fill: '#f8fafc' }}
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                          />
+                          <Bar dataKey="jumlah" fill="#10b981" radius={[0, 4, 4, 0]}>
+                            <LabelList dataKey="jumlah" position="right" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#10b981' }} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                        <MapPin size={48} className="opacity-20 mb-4"/>
+                        <p className="text-xs font-bold uppercase tracking-widest">Belum ada data perjalanan dalam daerah</p>
+                      </div>
+                    )}
+                  </div>
+               </div>
+            </div>
           </div>
         )}
 

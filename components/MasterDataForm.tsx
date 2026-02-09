@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { MasterCost, SubActivity } from '../types';
-import { Plus, Trash2, Upload, Save, X, Edit2, CreditCard, ListTree, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Upload, Save, X, Edit2, CreditCard, ListTree, AlertTriangle, Download, RefreshCw, Share2 } from 'lucide-react';
 import { formatCurrency, formatNumber, parseNumber } from '../utils';
 import * as XLSX from 'xlsx';
 
@@ -10,15 +10,22 @@ interface Props {
   onSaveCosts: (costs: MasterCost[]) => void;
   subActivities: SubActivity[];
   onSaveSubs: (subs: SubActivity[]) => void;
+  onExport?: () => void;
+  onImport?: (file: File) => void;
+  onReset?: () => void;
 }
 
-type Tab = 'COSTS' | 'SUBS';
+type Tab = 'COSTS' | 'SUBS' | 'SYNC';
 
-export const MasterDataForm: React.FC<Props> = ({ masterCosts, onSaveCosts, subActivities, onSaveSubs }) => {
+export const MasterDataForm: React.FC<Props> = ({ 
+  masterCosts, onSaveCosts, subActivities, onSaveSubs, 
+  onExport, onImport, onReset 
+}) => {
   const [activeTab, setActiveTab] = useState<Tab>('COSTS');
   const [isAdding, setIsAdding] = useState(false);
   const [editingCost, setEditingCost] = useState<string | null>(null);
   const [editingSub, setEditingSub] = useState<string | null>(null);
+  const dbInputRef = useRef<HTMLInputElement>(null);
   
   // Form states
   const [costForm, setCostForm] = useState<MasterCost>({
@@ -188,53 +195,131 @@ export const MasterDataForm: React.FC<Props> = ({ masterCosts, onSaveCosts, subA
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b">
+        <div className="flex border-b overflow-x-auto">
           <button 
             onClick={() => { setActiveTab('COSTS'); resetCostForm(); }}
-            className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition ${activeTab === 'COSTS' ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' : 'text-gray-400 hover:bg-gray-50'}`}
+            className={`flex-1 min-w-[150px] py-4 text-xs font-black uppercase flex items-center justify-center gap-2 transition tracking-wider ${activeTab === 'COSTS' ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' : 'text-slate-400 hover:bg-slate-50'}`}
           >
-            <CreditCard size={18} /> Master Biaya Perjalanan
+            <CreditCard size={18} /> Master Biaya
           </button>
           <button 
             onClick={() => { setActiveTab('SUBS'); resetSubForm(); }}
-            className={`flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 transition ${activeTab === 'SUBS' ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' : 'text-gray-400 hover:bg-gray-50'}`}
+            className={`flex-1 min-w-[150px] py-4 text-xs font-black uppercase flex items-center justify-center gap-2 transition tracking-wider ${activeTab === 'SUBS' ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600' : 'text-slate-400 hover:bg-slate-50'}`}
           >
-            <ListTree size={18} /> Master Sub Kegiatan
+            <ListTree size={18} /> Sub Kegiatan
+          </button>
+          <button 
+            onClick={() => { setActiveTab('SYNC'); setIsAdding(false); }}
+            className={`flex-1 min-w-[150px] py-4 text-xs font-black uppercase flex items-center justify-center gap-2 transition tracking-wider ${activeTab === 'SYNC' ? 'text-emerald-600 bg-emerald-50 border-b-2 border-emerald-600' : 'text-slate-400 hover:bg-slate-50'}`}
+          >
+            <Share2 size={18} /> Berbagi Database
           </button>
         </div>
 
-        <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
-          <h3 className="font-bold text-gray-700 uppercase text-xs tracking-wider">
-            {activeTab === 'COSTS' ? 'Manajemen Biaya Regional' : 'Manajemen Sub Kegiatan'}
-          </h3>
-          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
-            {(activeTab === 'COSTS' ? masterCosts.length > 0 : subActivities.length > 0) && (
-              <button 
-                onClick={handleClearAll}
-                className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-lg transition text-[10px] font-black uppercase tracking-wider"
-              >
-                <Trash2 size={14} /> Hapus Semua
-              </button>
-            )}
-            <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg cursor-pointer transition text-[10px] font-black uppercase tracking-wider shadow-sm">
-              <Upload size={14} /> Impor Excel
-              <input 
-                type="file" 
-                accept=".xlsx, .xls" 
-                className="hidden" 
-                onChange={activeTab === 'COSTS' ? handleCostImport : handleSubImport} 
-              />
-            </label>
-            {!isAdding && (
-              <button 
-                onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition text-[10px] font-black uppercase tracking-wider shadow-sm"
-              >
-                <Plus size={14} /> Tambah Manual
-              </button>
-            )}
+        {activeTab !== 'SYNC' && (
+          <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+            <h3 className="font-bold text-gray-700 uppercase text-xs tracking-wider">
+              {activeTab === 'COSTS' ? 'Manajemen Biaya Regional' : 'Manajemen Sub Kegiatan'}
+            </h3>
+            <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
+              {(activeTab === 'COSTS' ? masterCosts.length > 0 : subActivities.length > 0) && (
+                <button 
+                  onClick={handleClearAll}
+                  className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2 rounded-lg transition text-[10px] font-black uppercase tracking-wider"
+                >
+                  <Trash2 size={14} /> Hapus Semua
+                </button>
+              )}
+              <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg cursor-pointer transition text-[10px] font-black uppercase tracking-wider shadow-sm">
+                <Upload size={14} /> Impor Excel
+                <input 
+                  type="file" 
+                  accept=".xlsx, .xls" 
+                  className="hidden" 
+                  onChange={activeTab === 'COSTS' ? handleCostImport : handleSubImport} 
+                />
+              </label>
+              {!isAdding && (
+                <button 
+                  onClick={() => setIsAdding(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition text-[10px] font-black uppercase tracking-wider shadow-sm"
+                >
+                  <Plus size={14} /> Tambah Manual
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Sync Tab UI */}
+        {activeTab === 'SYNC' && (
+          <div className="p-8 space-y-8 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Export Card */}
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
+                <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                  <Download size={28} />
+                </div>
+                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Cadangkan (Ekspor) Database</h4>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
+                  Gunakan fitur ini untuk menyimpan seluruh data Anda (Profil, Pegawai, SPT, Biaya) ke dalam satu file. File ini dapat Anda kirimkan ke rekan kerja untuk dibagikan.
+                </p>
+                <button 
+                  onClick={onExport}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
+                >
+                  Unduh File Database (.json)
+                </button>
+              </div>
+
+              {/* Import Card */}
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
+                <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                  <Upload size={28} />
+                </div>
+                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Sinkronkan (Impor) Database</h4>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
+                  Pilih file cadangan (.json) dari rekan kerja atau perangkat lain untuk disalin ke aplikasi ini. Data lama Anda akan digantikan dengan data baru.
+                </p>
+                <button 
+                  onClick={() => dbInputRef.current?.click()}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
+                >
+                  Unggah File & Sinkronisasi
+                </button>
+                <input 
+                  type="file" 
+                  ref={dbInputRef} 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && onImport) onImport(file);
+                    e.target.value = '';
+                  }} 
+                />
+              </div>
+            </div>
+
+            <div className="p-6 bg-red-50 border border-red-100 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white text-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                  <RefreshCw size={20} />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black text-red-800 uppercase tracking-widest">Reset Ulang Sistem</h5>
+                  <p className="text-[10px] text-red-600 font-bold uppercase mt-1">Hapus seluruh data untuk mengganti SKPD atau memulai dari awal</p>
+                </div>
+              </div>
+              <button 
+                onClick={onReset}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-wider transition shadow-sm"
+              >
+                Reset Semua Data
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Form Add/Edit Cost */}
         {isAdding && activeTab === 'COSTS' && (
@@ -309,78 +394,80 @@ export const MasterDataForm: React.FC<Props> = ({ masterCosts, onSaveCosts, subA
         )}
 
         {/* Tables */}
-        <div className="overflow-x-auto">
-          {activeTab === 'COSTS' ? (
-            <table className="w-full text-left text-[10px]">
-              <thead className="bg-gray-50 border-b text-gray-500 font-bold uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4">Provinsi/Kab/Kota</th>
-                  <th className="px-4 py-4">Harian</th>
-                  <th className="px-4 py-4">Akomodasi</th>
-                  <th className="px-4 py-4">BBM</th>
-                  <th className="px-4 py-4">Kapal</th>
-                  <th className="px-4 py-4">Pesawat</th>
-                  <th className="px-4 py-4">Taksi</th>
-                  <th className="px-6 py-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {masterCosts.length === 0 ? (
-                  <tr><td colSpan={8} className="p-16 text-center text-gray-400 italic font-medium">Belum ada data master biaya. Silakan impor file Excel (.xlsx) atau tambah secara manual.</td></tr>
-                ) : (
-                  masterCosts.map(item => (
-                    <tr key={item.destination} className="hover:bg-slate-50 transition group">
-                      <td className="px-6 py-4 font-bold text-slate-800">{item.destination}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.dailyAllowance)}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.lodging)}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.transportBbm)}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.seaTransport)}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.airTransport)}</td>
-                      <td className="px-4 py-4 font-medium">{formatCurrency(item.taxi)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button onClick={() => handleEditCost(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
-                          <button onClick={() => handleDeleteCost(item.destination)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full text-left text-[10px]">
-              <thead className="bg-gray-50 border-b text-gray-500 font-bold uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4 w-1/4">Kode Rekening</th>
-                  <th className="px-6 py-4">Nama Sub Kegiatan</th>
-                  <th className="px-6 py-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {subActivities.length === 0 ? (
-                  <tr><td colSpan={3} className="p-16 text-center text-gray-400 italic font-medium">Belum ada data sub kegiatan. Silakan impor file Excel (.xlsx) atau tambah secara manual.</td></tr>
-                ) : (
-                  subActivities.map(item => (
-                    <tr key={item.code} className="hover:bg-slate-50 transition group">
-                      <td className="px-6 py-4 font-mono font-bold text-blue-600">{item.code}</td>
-                      <td className="px-6 py-4 text-slate-800 font-medium">{item.name}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button onClick={() => handleEditSub(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
-                          <button onClick={() => handleDeleteSub(item.code)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {activeTab !== 'SYNC' && (
+          <div className="overflow-x-auto">
+            {activeTab === 'COSTS' ? (
+              <table className="w-full text-left text-[10px]">
+                <thead className="bg-gray-50 border-b text-gray-500 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Provinsi/Kab/Kota</th>
+                    <th className="px-4 py-4">Harian</th>
+                    <th className="px-4 py-4">Akomodasi</th>
+                    <th className="px-4 py-4">BBM</th>
+                    <th className="px-4 py-4">Kapal</th>
+                    <th className="px-4 py-4">Pesawat</th>
+                    <th className="px-4 py-4">Taksi</th>
+                    <th className="px-6 py-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {masterCosts.length === 0 ? (
+                    <tr><td colSpan={8} className="p-16 text-center text-gray-400 italic font-medium">Belum ada data master biaya. Silakan impor file Excel (.xlsx) atau tambah secara manual.</td></tr>
+                  ) : (
+                    masterCosts.map(item => (
+                      <tr key={item.destination} className="hover:bg-slate-50 transition group">
+                        <td className="px-6 py-4 font-bold text-slate-800">{item.destination}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.dailyAllowance)}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.lodging)}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.transportBbm)}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.seaTransport)}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.airTransport)}</td>
+                        <td className="px-4 py-4 font-medium">{formatCurrency(item.taxi)}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button onClick={() => handleEditCost(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
+                            <button onClick={() => handleDeleteCost(item.destination)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-left text-[10px]">
+                <thead className="bg-gray-50 border-b text-gray-500 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4 w-1/4">Kode Rekening</th>
+                    <th className="px-6 py-4">Nama Sub Kegiatan</th>
+                    <th className="px-6 py-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {subActivities.length === 0 ? (
+                    <tr><td colSpan={3} className="p-16 text-center text-gray-400 italic font-medium">Belum ada data sub kegiatan. Silakan impor file Excel (.xlsx) atau tambah secara manual.</td></tr>
+                  ) : (
+                    subActivities.map(item => (
+                      <tr key={item.code} className="hover:bg-slate-50 transition group">
+                        <td className="px-6 py-4 font-mono font-bold text-blue-600">{item.code}</td>
+                        <td className="px-6 py-4 text-slate-800 font-medium">{item.name}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button onClick={() => handleEditSub(item)} className="text-blue-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition" title="Edit Data"><Edit2 size={16}/></button>
+                            <button onClick={() => handleDeleteSub(item.code)} className="text-red-300 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition" title="Hapus Data"><Trash2 size={16}/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
       
-      {(activeTab === 'COSTS' ? masterCosts.length > 0 : subActivities.length > 0) && (
+      {activeTab !== 'SYNC' && (activeTab === 'COSTS' ? masterCosts.length > 0 : subActivities.length > 0) && (
         <div className="flex items-center gap-2 text-[10px] text-slate-400 bg-white p-4 rounded-xl border border-slate-100 italic">
           <AlertTriangle size={14} className="text-amber-500" />
           Tips: Data Master akan digunakan secara otomatis sebagai referensi default saat membuat Perjalanan Dinas baru berdasarkan Tujuan atau Sub Kegiatan.

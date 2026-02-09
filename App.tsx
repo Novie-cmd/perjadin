@@ -102,7 +102,7 @@ const App: React.FC = () => {
       
       if (costData) setMasterCosts(costData.map(c => ({
         destination: c.destination, dailyAllowance: c.daily_allowance, lodging: c.lodging,
-        transportBbm: c.transport_bbm, seaTransport: c.sea_transport, airTransport: c.air_transport, taxi: c.taxi
+        transport_bbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi
       })));
 
       if (subData) setSubActivities(subData);
@@ -320,7 +320,7 @@ const App: React.FC = () => {
           <div className="space-y-4">
              <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                 <div className="flex items-center gap-2"><MapPin className="text-blue-600" size={18}/><h3 className="font-black text-xs uppercase tracking-widest">Konfigurasi Perjalanan</h3></div>
-                <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-slate-200 hover:bg-slate-200 transition"><UserCheck size={14}/> Kelola Pejabat Tujuan</p>
+                <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-slate-200 hover:bg-slate-200 transition"><UserCheck size={14}/> Kelola Pejabat Tujuan</button>
              </div>
              <TravelAssignmentForm 
                employees={employees} 

@@ -17,24 +17,28 @@ import {
   DaftarPenerimaanTemplate 
 } from './components/PrintDocuments';
 import { 
-  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, UserCheck, UserCog, MapPin, PieChart, Activity, RefreshCw, Cloud, AlertCircle, HardDrive
+  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, UserCheck, UserCog, MapPin, PieChart, Activity, RefreshCw, Cloud, AlertCircle, HardDrive, Key
 } from 'lucide-react';
 import { formatDateID } from './utils';
 import { INITIAL_SUB_ACTIVITIES, HEAD_OF_OFFICE, TREASURER, OFFICE_NAME, OFFICE_ADDRESS, OFFICE_LOCATION, LIST_KOTA_NTB } from './constants';
 
-// Akses variabel lingkungan secara aman
+// Deteksi variabel environment secara cerdas
 const getEnv = (key: string) => {
-  try {
-    return (window as any).process?.env?.[key] || (import.meta as any).env?.[`VITE_${key}`] || "";
-  } catch {
-    return "";
-  }
+  // Cek berbagai kemungkinan lokasi variabel environment di browser
+  return (
+    (window as any).process?.env?.[key] || 
+    (import.meta as any).env?.[`VITE_${key}`] || 
+    (import.meta as any).env?.[key] ||
+    ""
+  );
 };
 
 const supabaseUrl = getEnv('SUPABASE_URL');
 const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
 
-// Inisialisasi Supabase hanya jika kunci tersedia
+// Log status koneksi ke console (F12) untuk debug
+console.log("Supabase Config:", { url: !!supabaseUrl, key: !!supabaseAnonKey });
+
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const App: React.FC = () => {
@@ -69,13 +73,14 @@ const App: React.FC = () => {
 
   const refreshData = async () => {
     if (!supabase) {
-      setError("Konfigurasi Database (SUPABASE_URL / KEY) belum diatur di Vercel.");
+      setError("KONFIGURASI HILANG: SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di Environment Variables Vercel.");
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
+      // Menggunakan try-catch untuk menangkap error network atau error tabel tidak ada
       const [
         { data: empData, error: empErr },
         { data: offData },
@@ -94,7 +99,10 @@ const App: React.FC = () => {
         supabase.from('assignments').select('*').order('created_at', { ascending: false })
       ]);
 
-      if (empErr) throw empErr;
+      if (empErr) {
+        console.error("Supabase Query Error:", empErr);
+        throw new Error(empErr.message);
+      }
 
       if (empData) setEmployees(empData.map(e => ({
         id: e.id, name: e.name, nip: e.nip, pangkatGol: e.pangkat_gol, jabatan: e.jabatan,
@@ -155,8 +163,8 @@ const App: React.FC = () => {
 
       setError(null);
     } catch (err: any) {
-      console.error("Database Error:", err);
-      setError("Gagal terhubung ke Tabel Supabase. Pastikan tabel 'employees', 'assignments', dll sudah dibuat di SQL Editor.");
+      console.error("Critical Database Error:", err);
+      setError(`GAGAL KONEKSI: ${err.message || "Pastikan tabel sudah dibuat di SQL Editor Supabase."}`);
     } finally {
       setLoading(false);
     }
@@ -277,26 +285,32 @@ const App: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
         <RefreshCw className="animate-spin mb-4 text-blue-500" size={48} />
         <h2 className="text-xl font-black uppercase tracking-widest text-center">Menghubungkan ke Cloud...</h2>
-        <p className="text-slate-400 text-sm mt-2 text-center">Sedang sinkronisasi data {OFFICE_NAME}</p>
+        <p className="text-slate-400 text-xs mt-4 text-center max-w-xs uppercase tracking-tighter">Pastikan koneksi internet stabil dan variabel SUPABASE sudah benar.</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
-        <AlertCircle size={64} className="text-red-500 mb-6" />
-        <h2 className="text-2xl font-black text-slate-800 uppercase mb-4">Masalah Koneksi Database</h2>
-        <div className="bg-white p-8 rounded-3xl shadow-2xl border border-red-100 text-left max-w-xl mb-8">
-           <p className="text-red-600 font-bold mb-4">{error}</p>
-           <h3 className="font-black text-slate-800 uppercase text-xs mb-3 flex items-center gap-2"><HardDrive size={16}/> Langkah Perbaikan:</h3>
-           <ol className="text-xs text-slate-500 list-decimal pl-4 space-y-3 font-medium uppercase tracking-wider">
-              <li>Pastikan Tabel sudah dibuat di **Supabase SQL Editor** menggunakan script yang diberikan.</li>
-              <li>Pastikan **SUPABASE_URL** & **SUPABASE_ANON_KEY** sudah benar di Vercel Settings.</li>
-              <li>Jika baru saja memasukkan variabel di Vercel, lakukan **Redeploy** atau tunggu 1-2 menit.</li>
-           </ol>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 text-center">
+        <div className="bg-red-50 p-10 rounded-[3rem] border border-red-100 shadow-2xl max-w-2xl w-full">
+          <AlertCircle size={80} className="text-red-500 mb-6 mx-auto" />
+          <h2 className="text-3xl font-black text-slate-800 uppercase mb-4 leading-tight">Gagal Memuat Aplikasi</h2>
+          <div className="bg-white p-6 rounded-2xl text-left border border-red-200 mb-8">
+            <p className="text-red-600 font-bold font-mono text-sm break-words">{error}</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mb-8">
+            <div className="p-4 bg-white rounded-xl border border-slate-100">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><Key size={14}/> Masalah Kunci</h4>
+               <p className="text-[11px] text-slate-600 font-medium">Variabel <b>SUPABASE_URL</b> dan <b>SUPABASE_ANON_KEY</b> belum diatur di Vercel Dashboard.</p>
+            </div>
+            <div className="p-4 bg-white rounded-xl border border-slate-100">
+               <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><HardDrive size={14}/> Masalah Tabel</h4>
+               <p className="text-[11px] text-slate-600 font-medium">Tabel database belum dibuat melalui SQL Editor di Dashboard Supabase.</p>
+            </div>
+          </div>
+          <button onClick={() => window.location.reload()} className="w-full bg-slate-900 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-black transition active:scale-95">Segarkan Halaman</button>
         </div>
-        <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition active:scale-95">Refresh Aplikasi</button>
       </div>
     );
   }

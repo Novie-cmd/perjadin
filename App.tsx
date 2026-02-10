@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ViewMode, Employee, TravelAssignment, PrintType, MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
 import { TravelAssignmentForm } from './components/TravelAssignmentForm';
@@ -9,6 +9,7 @@ import { SKPDForm } from './components/SKPDForm';
 import { ReportView } from './components/ReportView';
 import { DestinationOfficialManager } from './components/DestinationOfficialManager';
 import { OfficialForm } from './components/OfficialForm';
+import { DatabaseSetup } from './components/DatabaseSetup';
 import { 
   SPTTemplate, 
   SPPDFrontTemplate,
@@ -18,7 +19,7 @@ import {
   DaftarPenerimaanTemplate 
 } from './components/PrintDocuments';
 import { 
-  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search, PieChart as PieIcon, Map, Settings2
+  LayoutDashboard, Users, FileText, Printer, ChevronLeft, Trash2, Calendar, Plus, Database, Edit2, Building2, BarChart3, RefreshCw, AlertCircle, Cloud, UserCheck, MapPin, Search, PieChart as PieIcon, Map, Settings2, LogOut
 } from 'lucide-react';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
 import { 
@@ -26,20 +27,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList 
 } from 'recharts';
 
-const getEnv = (key: string) => {
-  try {
-    const win = window as any;
-    return win.process?.env?.[key] || (import.meta as any).env?.[`VITE_${key}`] || (import.meta as any).env?.[key] || "";
-  } catch (e) {
-    return "";
-  }
-};
-
-const supabaseUrl = getEnv('SUPABASE_URL');
-const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
-const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
-
 const App: React.FC = () => {
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
+  const [dbConfigured, setDbConfigured] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +60,38 @@ const App: React.FC = () => {
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
 
+  // Initialize DB from LocalStorage
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('SB_URL');
+    const savedKey = localStorage.getItem('SB_KEY');
+
+    if (savedUrl && savedKey) {
+      const client = createClient(savedUrl, savedKey);
+      setSupabase(client);
+      setDbConfigured(true);
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleConnectDb = (url: string, key: string) => {
+    localStorage.setItem('SB_URL', url);
+    localStorage.setItem('SB_KEY', key);
+    const client = createClient(url, key);
+    setSupabase(client);
+    setDbConfigured(true);
+  };
+
+  const handleDisconnectDb = () => {
+    if (confirm('Putus koneksi database? Kredensial akan dihapus dari browser ini.')) {
+      localStorage.removeItem('SB_URL');
+      localStorage.removeItem('SB_KEY');
+      setSupabase(null);
+      setDbConfigured(false);
+      window.location.reload();
+    }
+  };
+
   // Data Calculations for Dashboard
   const dashboardStats = useMemo(() => {
     const travelTypeData = [
@@ -86,10 +108,7 @@ const App: React.FC = () => {
   }, [assignments]);
 
   const refreshData = async () => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
+    if (!supabase) return;
 
     setLoading(true);
     try {
@@ -162,13 +181,15 @@ const App: React.FC = () => {
       setError(null);
     } catch (err: any) {
       console.error("Fetch Error:", err);
-      setError(`Gagal memuat data: ${err.message}`);
+      setError(`Gagal memuat data: Pastikan table sudah dibuat di Supabase (setup.sql).`);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { refreshData(); }, []);
+  useEffect(() => { 
+    if (dbConfigured) refreshData(); 
+  }, [dbConfigured]);
 
   // Handlers
   const handleSaveAssignment = async (data: TravelAssignment) => {
@@ -207,10 +228,13 @@ const App: React.FC = () => {
     await refreshData();
   };
 
+  if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white">
       <RefreshCw className="animate-spin mb-4 text-blue-400" size={48} />
       <h2 className="text-xl font-bold uppercase tracking-widest">Sinkronisasi Database...</h2>
+      <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest italic tracking-tight">Mohon tunggu sejenak</p>
     </div>
   );
 
@@ -275,10 +299,26 @@ const App: React.FC = () => {
               <item.icon size={18} /> {item.label}
             </button>
           ))}
+          
+          <div className="pt-8 mt-8 border-t border-slate-800">
+             <button 
+              onClick={handleDisconnectDb}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-[10px] text-red-400 hover:bg-red-500/10 uppercase tracking-widest"
+            >
+              <LogOut size={16} /> Putus Koneksi DB
+            </button>
+          </div>
         </nav>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 animate-in slide-in-from-top-4">
+            <AlertCircle size={20} />
+            <p className="text-xs font-bold">{error}</p>
+          </div>
+        )}
+
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{viewMode.replace('_', ' ')}</h2>
@@ -337,8 +377,8 @@ const App: React.FC = () => {
                     <span className="text-purple-500 bg-purple-50 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter">Database</span>
                   </div>
                   <div className="mt-4">
-                    <div className="text-3xl font-black">Connected</div>
-                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Status Sinkronisasi</div>
+                    <div className="text-3xl font-black italic">Cloud</div>
+                    <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Koneksi Aktif</div>
                   </div>
                </div>
             </div>

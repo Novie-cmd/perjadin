@@ -1,7 +1,4 @@
 
--- Jalankan script ini di SQL Editor Supabase Anda
--- Perintah ini akan membuat tabel dan memberikan izin akses penuh bagi pemegang API Key Anon
-
 -- 1. TABEL PEGAWAI
 CREATE TABLE IF NOT EXISTS employees (
   id TEXT PRIMARY KEY,
@@ -13,9 +10,6 @@ CREATE TABLE IF NOT EXISTS employees (
   representation_dalam NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh Pegawai" ON employees;
-CREATE POLICY "Izin Akses Penuh Pegawai" ON employees FOR ALL USING (true) WITH CHECK (true);
 
 -- 2. TABEL PEJABAT INTERNAL
 CREATE TABLE IF NOT EXISTS officials (
@@ -26,9 +20,6 @@ CREATE TABLE IF NOT EXISTS officials (
   role TEXT, 
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE officials ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh Pejabat" ON officials;
-CREATE POLICY "Izin Akses Penuh Pejabat" ON officials FOR ALL USING (true) WITH CHECK (true);
 
 -- 3. TABEL PEJABAT TUJUAN
 CREATE TABLE IF NOT EXISTS destination_officials (
@@ -39,9 +30,6 @@ CREATE TABLE IF NOT EXISTS destination_officials (
   instansi TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE destination_officials ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh Pejabat Tujuan" ON destination_officials;
-CREATE POLICY "Izin Akses Penuh Pejabat Tujuan" ON destination_officials FOR ALL USING (true) WITH CHECK (true);
 
 -- 4. TABEL KONFIGURASI SKPD
 CREATE TABLE IF NOT EXISTS skpd_config (
@@ -60,9 +48,6 @@ CREATE TABLE IF NOT EXISTS skpd_config (
   logo TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE skpd_config ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh SKPD" ON skpd_config;
-CREATE POLICY "Izin Akses Penuh SKPD" ON skpd_config FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. TABEL MASTER BIAYA
 CREATE TABLE IF NOT EXISTS master_costs (
@@ -75,9 +60,6 @@ CREATE TABLE IF NOT EXISTS master_costs (
   taxi NUMERIC DEFAULT 0,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE master_costs ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh Biaya" ON master_costs;
-CREATE POLICY "Izin Akses Penuh Biaya" ON master_costs FOR ALL USING (true) WITH CHECK (true);
 
 -- 6. TABEL SUB KEGIATAN
 CREATE TABLE IF NOT EXISTS sub_activities (
@@ -86,9 +68,6 @@ CREATE TABLE IF NOT EXISTS sub_activities (
   budget_code TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE sub_activities ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh Sub Kegiatan" ON sub_activities;
-CREATE POLICY "Izin Akses Penuh Sub Kegiatan" ON sub_activities FOR ALL USING (true) WITH CHECK (true);
 
 -- 7. TABEL ASSIGNMENTS (SPT/SPPD)
 CREATE TABLE IF NOT EXISTS assignments (
@@ -113,6 +92,20 @@ CREATE TABLE IF NOT EXISTS assignments (
   destination_official_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- AKTIFKAN RLS DAN BUAT POLICY AGAR BISA DIAKSES (Penting!)
+ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE officials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE destination_officials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skpd_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE master_costs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Izin Akses Penuh SPT" ON assignments;
-CREATE POLICY "Izin Akses Penuh SPT" ON assignments FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Akses Publik Pegawai" ON employees FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik Pejabat" ON officials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik Pejabat Tujuan" ON destination_officials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik SKPD" ON skpd_config FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik Biaya" ON master_costs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik Sub Kegiatan" ON sub_activities FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Akses Publik SPT" ON assignments FOR ALL USING (true) WITH CHECK (true);

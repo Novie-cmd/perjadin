@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
@@ -190,6 +189,7 @@ const App: React.FC = () => {
 
   const handleSaveAssignment = async (data: TravelAssignment) => {
     if (!supabase) return;
+    // Fix: Using data.durationDays instead of data.duration_days to match TravelAssignment interface
     const { error } = await supabase.from('assignments').upsert({
       id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
       purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
@@ -508,24 +508,25 @@ const App: React.FC = () => {
               else await refreshData();
             }
           }} onSaveSub={async (sub) => {
-            if (supabase) {
-              // PERBAIKAN: Sertakan budget_code agar data tidak terhapus saat upsert
-              const { error } = await supabase.from('sub_activities').upsert({ 
-                code: sub.code, 
-                name: sub.name,
-                budget_code: sub.budgetCode,
-                anggaran: sub.anggaran,
-                spd: sub.spd,
-                triwulan1: sub.triwulan1,
-                triwulan2: sub.triwulan2,
-                triwulan3: sub.triwulan3,
-                triwulan4: sub.triwulan4
-              });
-              if (error) alert(`Gagal: ${error.message}`);
-              else {
-                await refreshData();
-                alert('Data Sub Kegiatan berhasil diperbarui!');
-              }
+            if (!supabase) return;
+            // MEMASTIKAN NAMA KOLOM SESUAI DENGAN DATABASE
+            const { error } = await supabase.from('sub_activities').upsert({ 
+              code: sub.code, 
+              name: sub.name,
+              budget_code: sub.budget_code || '',
+              anggaran: sub.anggaran,
+              spd: sub.spd,
+              triwulan1: sub.triwulan1,
+              triwulan2: sub.triwulan2,
+              triwulan3: sub.triwulan3,
+              triwulan4: sub.triwulan4
+            });
+            if (error) {
+              alert(`Gagal menyimpan ke database: ${error.message}`);
+              throw error; // Re-throw agar ditangkap di form
+            } else {
+              await refreshData();
+              alert('Data Sub Kegiatan berhasil disimpan!');
             }
           }} onDeleteSub={async (code) => {
             if (supabase) {

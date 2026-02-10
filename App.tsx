@@ -513,7 +513,57 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
 
-        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ ...c, daily_allowance: c.dailyAllowance, transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { await supabase.from('sub_activities').upsert({ ...s, budget_code: s.budgetCode }); await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { await supabase.from('sub_activities').delete().eq('code', c); await refreshData(); } }} onClearSubs={async () => { if(supabase) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
+        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm 
+          masterCosts={masterCosts} 
+          subActivities={subActivities} 
+          onSaveCost={async (c) => { 
+            if(supabase) { 
+              await supabase.from('master_costs').upsert({ 
+                destination: c.destination,
+                daily_allowance: c.dailyAllowance,
+                lodging: c.lodging,
+                transport_bbm: c.transportBbm,
+                sea_transport: c.seaTransport,
+                air_transport: c.airTransport,
+                taxi: c.taxi
+              }); 
+              await refreshData(); 
+            } 
+          }} 
+          onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} 
+          onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} 
+          onSaveSub={async (s) => { 
+            if(supabase) { 
+              const { error } = await supabase.from('sub_activities').upsert({ 
+                code: s.code,
+                name: s.name,
+                budget_code: s.budgetCode || '',
+                anggaran: s.anggaran || 0,
+                spd: s.spd || '0',
+                triwulan1: s.triwulan1 || 0,
+                triwulan2: s.triwulan2 || 0,
+                triwulan3: s.triwulan3 || 0,
+                triwulan4: s.triwulan4 || 0
+              }); 
+              if (error) alert(`Gagal Simpan: ${error.message}`);
+              else await refreshData(); 
+            } 
+          }} 
+          onDeleteSub={async (c) => { 
+            if(supabase) { 
+              // Cek apakah digunakan di riwayat SPT
+              const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1);
+              if (data && data.length > 0) {
+                alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.');
+                return;
+              }
+              const { error } = await supabase.from('sub_activities').delete().eq('code', c); 
+              if (error) alert(`Gagal Hapus: ${error.message}`);
+              else await refreshData(); 
+            } 
+          }} 
+          onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} 
+        />}
 
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
 

@@ -31,7 +31,7 @@ import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
-import { formatCurrency, formatNumber } from './utils';
+import { formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
 
 const App: React.FC = () => {
@@ -69,7 +69,6 @@ const App: React.FC = () => {
 
   // Kalkulasi Keuangan Real-time
   const financialStats = useMemo(() => {
-    // 1. Hitung Realisasi per Sub Kegiatan
     const realizationMap = assignments.reduce((acc, curr) => {
       const code = curr.subActivityCode;
       const totalAssignmentCost = curr.costs.reduce((sum, cost) => {
@@ -79,12 +78,10 @@ const App: React.FC = () => {
         const repres = (cost.representation || 0) * (cost.representationDays || 0);
         return sum + daily + lodging + transport + repres;
       }, 0);
-
       acc[code] = (acc[code] || 0) + totalAssignmentCost;
       return acc;
     }, {} as Record<string, number>);
 
-    // 2. Olah Data Sub Kegiatan untuk Tabel Dashboard
     const subSummary = subActivities
       .filter(s => s.anggaran > 0)
       .map(s => {
@@ -98,7 +95,6 @@ const App: React.FC = () => {
         };
       });
 
-    // 3. Hitung Total Keseluruhan
     const totalAnggaran = subActivities.reduce((sum, s) => sum + s.anggaran, 0);
     const totalSpd = subActivities.reduce((sum, s) => sum + (Number(s.spd) || 0), 0);
     const totalRealisasi = Object.values(realizationMap).reduce((sum, v) => sum + v, 0);
@@ -115,7 +111,6 @@ const App: React.FC = () => {
     };
   }, [subActivities, assignments]);
 
-  // Computed Chart Data
   const chartData = useMemo(() => {
     const typeCounts = assignments.reduce((acc, curr) => {
       acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
@@ -169,13 +164,13 @@ const App: React.FC = () => {
     setError(null);
     try {
       const [
-        { data: empData, error: empErr }, 
-        { data: offData, error: offErr }, 
-        { data: destOffData, error: destOffErr }, 
+        { data: empData }, 
+        { data: offData }, 
+        { data: destOffData }, 
         { data: skpdData, error: skpdErr }, 
-        { data: costData, error: costErr }, 
-        { data: subData, error: subErr }, 
-        { data: assignData, error: assignErr }
+        { data: costData }, 
+        { data: subData }, 
+        { data: assignData }
       ] = await Promise.all([
         supabase.from('employees').select('*').order('name'),
         supabase.from('officials').select('*').order('name'),
@@ -366,155 +361,93 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.DASHBOARD && (
           <div className="space-y-8">
-            {/* Kartu Finansial Utama */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-blue-200 transition">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-                  <Landmark size={20} />
-                </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <Landmark className="text-blue-600 mb-3" size={20} />
                 <div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.anggaran)}</div>
                 <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Anggaran</div>
               </div>
-              
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-emerald-200 transition">
-                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
-                  <TrendingUp size={20} />
-                </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <TrendingUp className="text-emerald-600 mb-3" size={20} />
                 <div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.spd)}</div>
                 <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">SPD Akumulasi</div>
               </div>
-
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-indigo-200 transition">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
-                  <Coins size={20} />
-                </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <Coins className="text-indigo-600 mb-3" size={20} />
                 <div className="text-lg font-black text-indigo-700 leading-tight">Rp {formatNumber(financialStats.totals.realisasi)}</div>
                 <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Realisasi</div>
               </div>
-
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-amber-200 transition">
-                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
-                  <Wallet size={20} />
-                </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <Wallet className="text-amber-600 mb-3" size={20} />
                 <div className="text-lg font-black text-amber-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaSpd)}</div>
-                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa SPD Akumulasi</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa SPD</div>
               </div>
-
-              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-rose-200 transition">
-                <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-3">
-                  <AlertCircle size={20} />
-                </div>
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <AlertCircle className="text-rose-600 mb-3" size={20} />
                 <div className="text-lg font-black text-rose-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaAnggaran)}</div>
                 <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa Anggaran</div>
               </div>
             </div>
 
-            {/* Tabel Ringkasan Sub Kegiatan */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                <div className="p-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
-                 <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-100">
-                    <BarChart3 size={18} />
-                 </div>
-                 <div>
-                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Informasi Sub Kegiatan & Serapan</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 italic">Hanya menampilkan kegiatan dengan anggaran > Rp 0</p>
-                 </div>
+                 <BarChart3 className="text-blue-600" size={18} />
+                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Informasi Sub Kegiatan & Serapan</h3>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-left">
-                   <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-widest border-b border-slate-100">
+                   <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-widest border-b">
                      <tr>
-                       <th className="px-6 py-4">Kode & Nama Sub Kegiatan</th>
+                       <th className="px-6 py-4">Nama Sub Kegiatan</th>
                        <th className="px-6 py-4 text-right">Total Anggaran</th>
-                       <th className="px-6 py-4 text-right">SPD Akumulasi</th>
-                       <th className="px-6 py-4 text-right">Realisasi (SPT)</th>
+                       <th className="px-6 py-4 text-right">SPD</th>
+                       <th className="px-6 py-4 text-right">Realisasi</th>
                        <th className="px-6 py-4 text-right">Sisa SPD</th>
                        <th className="px-6 py-4 text-right">Sisa Anggaran</th>
                      </tr>
                    </thead>
-                   <tbody className="divide-y divide-slate-100">
+                   <tbody className="divide-y">
                      {financialStats.subSummary.map(item => (
-                       <tr key={item.code} className="hover:bg-slate-50 transition text-[11px]">
+                       <tr key={item.code} className="hover:bg-slate-50 text-[11px]">
                          <td className="px-6 py-4">
-                           <div className="font-black text-blue-600 uppercase tracking-tighter">{item.code}</div>
-                           <div className="text-slate-600 font-medium line-clamp-1 max-w-xs">{item.name}</div>
+                           <div className="font-black text-blue-600">{item.code}</div>
+                           <div className="text-slate-600 font-medium line-clamp-1">{item.name}</div>
                          </td>
                          <td className="px-6 py-4 text-right font-bold text-slate-700">Rp {formatNumber(item.anggaran)}</td>
                          <td className="px-6 py-4 text-right font-bold text-emerald-600">Rp {formatNumber(Number(item.spd) || 0)}</td>
                          <td className="px-6 py-4 text-right font-black text-indigo-700">Rp {formatNumber(item.realization)}</td>
-                         <td className="px-6 py-4 text-right">
-                            <span className={`font-black ${item.sisaSpd < 0 ? 'text-rose-600' : 'text-amber-600'}`}>
-                               Rp {formatNumber(item.sisaSpd)}
-                            </span>
-                         </td>
+                         <td className={`px-6 py-4 text-right font-black ${item.sisaSpd < 0 ? 'text-rose-600' : 'text-amber-600'}`}>Rp {formatNumber(item.sisaSpd)}</td>
                          <td className="px-6 py-4 text-right font-black text-slate-400">Rp {formatNumber(item.sisaAnggaran)}</td>
                        </tr>
                      ))}
-                     {financialStats.subSummary.length === 0 && (
-                       <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data sub kegiatan dengan anggaran yang terdaftar.</td></tr>
-                     )}
                    </tbody>
                  </table>
                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center flex-col min-h-[300px]">
-                <h3 className="w-full text-left font-black text-slate-800 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <PieChartIcon size={14} className="text-blue-600"/> Komposisi Wilayah (SPT)
-                </h3>
-                <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RePieChart>
-                      <Pie
-                        data={chartData.pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {chartData.pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                      />
-                      <Legend verticalAlign="bottom" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}/>
-                    </RePieChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border min-h-[300px]">
+                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><PieChartIcon size={14} /> Komposisi SPT</h3>
+                <ResponsiveContainer width="100%" height="80%">
+                  <RePieChart>
+                    <Pie data={chartData.pieData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={70}>
+                      {chartData.pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
               </div>
-
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center flex-col min-h-[300px]">
-                <h3 className="w-full text-left font-black text-slate-800 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Map size={14} className="text-blue-600"/> Statistik Tujuan NTB
-                </h3>
-                <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ReBarChart
-                      layout="vertical"
-                      data={chartData.ntbDestStats}
-                      margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" hide />
-                      <YAxis 
-                        dataKey="name" 
-                        type="category" 
-                        width={100} 
-                        tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} 
-                      />
-                      <Tooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                      />
-                      <Bar dataKey="count" name="Kunjungan" fill="#4f46e5" radius={[0, 4, 4, 0]} />
-                    </ReBarChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="lg:col-span-3 bg-white p-6 rounded-3xl border min-h-[300px]">
+                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><Map size={14} /> Statistik Tujuan NTB</h3>
+                <ResponsiveContainer width="100%" height="80%">
+                  <ReBarChart layout="vertical" data={chartData.ntbDestStats}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+                  </ReBarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
@@ -522,221 +455,98 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
-            const { error } = await supabase.from('skpd_config').upsert({ 
-              id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, 
-              lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, 
-              kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, 
-              bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo 
-            });
-            if (error) alert(`Gagal: ${error.message}`);
-            else await refreshData();
+            const { error } = await supabase.from('skpd_config').upsert({ id: 'main', ...cfg });
+            if (error) alert(error.message); else await refreshData();
           }
         }} />}
 
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => {
           if (supabase) {
-            const { error } = await supabase.from('officials').upsert({
-              id: o.id || Date.now().toString(),
-              name: o.name,
-              nip: o.nip,
-              jabatan: o.jabatan,
-              role: o.role
-            });
-            if (error) alert(`Gagal: ${error.message}`);
-            else await refreshData();
+            const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o });
+            if (error) alert(error.message); else await refreshData();
           }
         }} onDelete={async (id) => {
-          if (supabase && confirm('Hapus pejabat internal?')) {
+          if (supabase && confirm('Hapus?')) {
             const { error } = await supabase.from('officials').delete().eq('id', id);
-            if (error) alert(`Gagal: ${error.message}`);
-            else await refreshData();
+            if (error) alert(error.message); else await refreshData();
           }
         }} />}
 
         {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => {
-          if (supabase) { 
-            const { error } = await supabase.from('employees').upsert({ 
-              id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, 
-              jabatan: e.jabatan, representation_luar: e.representationLuar, 
-              representation_dalam: e.representationDalam 
-            });
-            if (error) alert(`Gagal: ${error.message}`);
-            else await refreshData(); 
+          if (supabase) {
+            const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam });
+            if (error) alert(error.message); else await refreshData();
           }
         }} onDelete={async (id) => {
-          if (supabase && confirm('Hapus pegawai?')) { 
-            const { error } = await supabase.from('employees').delete().eq('id', id); 
-            if (error) alert(`Gagal: ${error.message}`);
-            else await refreshData(); 
+          if (supabase && confirm('Hapus?')) {
+            const { error } = await supabase.from('employees').delete().eq('id', id);
+            if (error) alert(error.message); else await refreshData();
           }
         }} />}
 
         {viewMode === ViewMode.TRAVEL_LIST && (
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
-                  <tr>
-                    <th className="px-6 py-5">Nomor & Tanggal</th>
-                    <th className="px-6 py-5">Tujuan</th>
-                    <th className="px-6 py-5">Maksud</th>
-                    <th className="px-6 py-5 text-right">Aksi</th>
+          <div className="bg-white rounded-3xl border overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b">
+                <tr><th className="px-6 py-5">Nomor & Tanggal</th><th className="px-6 py-5">Tujuan</th><th className="px-6 py-5 text-right">Aksi</th></tr>
+              </thead>
+              <tbody className="divide-y">
+                {assignments.map(a => (
+                  <tr key={a.id} className="hover:bg-slate-50">
+                    <td className="px-6 py-5">
+                      <div className="font-black text-sm">{a.assignmentNumber}</div>
+                      <div className="text-[10px] text-slate-400">{a.startDate}</div>
+                    </td>
+                    <td className="px-6 py-5"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black">{a.destination}</span></td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
+                        <button onClick={async () => { if(supabase && confirm('Hapus?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {assignments.map(a => (
-                    <tr key={a.id} className="hover:bg-slate-50 transition group">
-                      <td className="px-6 py-5">
-                        <div className="font-black text-slate-800 text-sm">{a.assignmentNumber}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase">{a.startDate}</div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black border border-blue-100">{a.destination}</span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-xs font-medium text-slate-600 line-clamp-1 max-w-xs">{a.purpose}</p>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"><Edit2 size={16}/></button>
-                          <button onClick={async () => { if(supabase && confirm('Hapus SPT ini?')) { const { error } = await supabase.from('assignments').delete().eq('id', a.id); if (error) alert(`Gagal: ${error.message}`); else await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"><Trash2 size={16}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {assignments.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">Belum ada data perjalanan dinas.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
 
-        {viewMode === ViewMode.MASTER_DATA && (
-          <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (cost) => {
-            if (supabase) {
-              const { error } = await supabase.from('master_costs').upsert({ destination: cost.destination, daily_allowance: cost.dailyAllowance, lodging: cost.lodging, transport_bbm: cost.transportBbm, sea_transport: cost.seaTransport, air_transport: cost.airTransport, taxi: cost.taxi });
-              if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
-            }
-          }} onDeleteCost={async (destination) => {
-            if (supabase) {
-              const { error } = await supabase.from('master_costs').delete().eq('destination', destination);
-              if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
-            }
-          }} onClearCosts={async () => {
-            if (supabase) {
-              const { error } = await supabase.from('master_costs').delete().neq('destination', '___X___');
-              if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
-            }
-          }} onSaveSub={async (sub) => {
-            if (!supabase) return;
-            const { error } = await supabase.from('sub_activities').upsert({ 
-              code: sub.code, 
-              name: sub.name,
-              budget_code: sub.budgetCode || '',
-              anggaran: sub.anggaran,
-              spd: sub.spd,
-              triwulan1: sub.triwulan1,
-              triwulan2: sub.triwulan2,
-              triwulan3: sub.triwulan3,
-              triwulan4: sub.triwulan4
-            });
-            if (error) {
-              alert(`Gagal menyimpan ke database: ${error.message}`);
-              throw error; 
-            } else {
-              await refreshData();
-              alert('Data Sub Kegiatan berhasil disimpan!');
-            }
-          }} onDeleteSub={async (code) => {
-            if (supabase) {
-              const { error } = await supabase.from('sub_activities').delete().eq('code', code);
-              if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
-            }
-          }} onClearSubs={async () => {
-            if (supabase) {
-              const { error } = await supabase.from('sub_activities').delete().neq('code', '___X___');
-              if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
-            }
-          }} />
-        )}
+        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ ...c, daily_allowance: c.dailyAllowance, transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { await supabase.from('sub_activities').upsert({ ...s, budget_code: s.budgetCode }); await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { await supabase.from('sub_activities').delete().eq('code', c); await refreshData(); } }} onClearSubs={async () => { if(supabase) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
 
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
 
         {viewMode === ViewMode.PRINT_MENU && (
-           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+           <div className="bg-white rounded-3xl border overflow-hidden">
              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
-               <div className="flex items-center gap-3">
-                 <Printer size={20} className="text-blue-600" />
-                 <h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3>
-               </div>
-               <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300">
-                 <Settings2 size={14}/> Kelola Pejabat Tujuan
-               </button>
+               <h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3>
+               <button onClick={() => setShowDestManager(true)} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Kelola Pejabat Tujuan</button>
              </div>
-             <div className="overflow-x-auto">
-               <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100">
-                   <tr>
-                     <th className="px-6 py-4">Nomor & Tujuan</th>
-                     <th className="px-6 py-4">Pejabat Pengesah (Tujuan)</th>
-                     <th className="px-6 py-4 text-right">Opsi Cetak</th>
+             <table className="w-full text-left">
+               <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b">
+                 <tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4">Opsi Cetak</th></tr>
+               </thead>
+               <tbody className="divide-y">
+                 {assignments.map(item => (
+                   <tr key={item.id} className="hover:bg-slate-50">
+                     <td className="px-6 py-5">
+                       <div className="font-bold text-xs">{item.assignmentNumber}</div>
+                       <div className="text-[10px] text-slate-400">{item.destination}</div>
+                     </td>
+                     <td className="px-6 py-5 text-right flex gap-2 justify-end">
+                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.SPT); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase">SPT</button>
+                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.SPPD_FRONT); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black uppercase">SPD</button>
+                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.KUITANSI); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[9px] font-black uppercase">Kwitansi</button>
+                     </td>
                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-100">
-                   {assignments.map(item => (
-                     <tr key={item.id} className="hover:bg-slate-50 transition">
-                       <td className="px-6 py-5">
-                         <div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div>
-                         <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
-                       </td>
-                       <td className="px-6 py-5">
-                         <select className="w-full max-w-[220px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white text-slate-700" value={item.destinationOfficialId || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, e.target.value)}>
-                           <option value="">-- Pilih Pejabat Tujuan --</option>
-                           {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name} ({doff.jabatan})</option>))}
-                         </select>
-                       </td>
-                       <td className="px-6 py-5 text-right">
-                         <div className="flex gap-2 flex-wrap justify-end">
-                           {[
-                             { label: 'SPT', type: PrintType.SPT, color: 'blue' },
-                             { label: 'SPD Dpn', type: PrintType.SPPD_FRONT, color: 'emerald' },
-                             { label: 'SPD Blk', type: PrintType.SPPD_BACK, color: 'emerald' },
-                             { label: 'Kuitansi', type: PrintType.KUITANSI, color: 'amber' },
-                             { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
-                             { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
-                           ].map(btn => (
-                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                               btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : 
-                               btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : 
-                               btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : 
-                               btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : 
-                               'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white'}`}>
-                               {btn.label}
-                             </button>
-                           ))}
-                         </div>
-                       </td>
-                     </tr>
-                   ))}
-                   {assignments.length === 0 && (
-                     <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>
-                   )}
-                 </tbody>
-               </table>
-             </div>
+                 ))}
+               </tbody>
+             </table>
            </div>
         )}
 
-        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} selectedId={undefined} onClose={() => setShowDestManager(false)} onSelect={(id) => setShowDestManager(false)} onSave={async (off) => { if(supabase) { const { error } = await supabase.from('destination_officials').upsert(off); if (error) alert(`Gagal: ${error.message}`); else await refreshData(); } }} onDelete={async (id) => { if(supabase && confirm('Hapus?')) { const { error } = await supabase.from('destination_officials').delete().eq('id', id); if (error) alert(`Gagal: ${error.message}`); else await refreshData(); } }} />}
+        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} onDelete={async (id) => { if(supabase) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }} />}
       </main>
     </div>
   );

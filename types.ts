@@ -97,6 +97,7 @@ export interface TravelAssignment {
 export enum ViewMode {
   DASHBOARD = 'DASHBOARD',
   EMPLOYEE_LIST = 'EMPLOYEE_LIST',
+  OFFICIAL_LIST = 'OFFICIAL_LIST',
   TRAVEL_LIST = 'TRAVEL_LIST',
   ADD_TRAVEL = 'ADD_TRAVEL',
   MASTER_DATA = 'MASTER_DATA',

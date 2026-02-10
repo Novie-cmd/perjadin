@@ -6,6 +6,7 @@ import {
   MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial 
 } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
+import { OfficialForm } from './components/OfficialForm';
 import { TravelAssignmentForm } from './components/TravelAssignmentForm';
 import { MasterDataForm } from './components/MasterDataForm';
 import { SKPDForm } from './components/SKPDForm';
@@ -23,7 +24,7 @@ import {
 import { 
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
-  BarChart3, RefreshCw, LogOut, Settings2 
+  BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck
 } from 'lucide-react';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
 
@@ -103,16 +104,15 @@ const App: React.FC = () => {
         { data: assignData, error: assignErr }
       ] = await Promise.all([
         supabase.from('employees').select('*').order('name'),
-        supabase.from('officials').select('*'),
-        supabase.from('destination_officials').select('*'),
+        supabase.from('officials').select('*').order('name'),
+        supabase.from('destination_officials').select('*').order('name'),
         supabase.from('skpd_config').select('*').eq('id', 'main').maybeSingle(),
         supabase.from('master_costs').select('*').order('destination'),
         supabase.from('sub_activities').select('*').order('code'),
         supabase.from('assignments').select('*').order('created_at', { ascending: false })
       ]);
 
-      if (skpdErr) throw skpdErr;
-      if (empErr) throw empErr;
+      if (skpdErr && skpdErr.code !== 'PGRST116') throw skpdErr; // PGRST116 is just 'no rows'
 
       if (empData) setEmployees(empData.map(e => ({ 
         id: e.id, name: e.name, nip: e.nip, pangkatGol: e.pangkat_gol, 
@@ -243,6 +243,7 @@ const App: React.FC = () => {
             { id: ViewMode.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
             { id: ViewMode.SKPD_CONFIG, label: 'Profil SKPD', icon: Building2 },
             { id: ViewMode.EMPLOYEE_LIST, label: 'Data Pegawai', icon: Users },
+            { id: ViewMode.OFFICIAL_LIST, label: 'Pejabat Internal', icon: ShieldCheck },
             { id: ViewMode.TRAVEL_LIST, label: 'Riwayat SPT', icon: Calendar },
             { id: ViewMode.MASTER_DATA, label: 'Data Master', icon: Database },
             { id: ViewMode.REPORT, label: 'Laporan', icon: BarChart3 },
@@ -285,8 +286,8 @@ const App: React.FC = () => {
                  <div className="text-slate-400 text-[10px] font-black uppercase mt-1">SPT Terbit</div>
                </div>
                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                 <div className="text-3xl font-black text-amber-600">{masterCosts.length}</div>
-                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Titik Biaya</div>
+                 <div className="text-3xl font-black text-amber-600">{officials.length}</div>
+                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Pejabat Internal</div>
                </div>
                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                  <div className="text-3xl font-black text-slate-800 italic">Cloud</div>
@@ -304,6 +305,26 @@ const App: React.FC = () => {
               kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, 
               bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo 
             });
+            if (error) alert(`Gagal: ${error.message}`);
+            else await refreshData();
+          }
+        }} />}
+
+        {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => {
+          if (supabase) {
+            const { error } = await supabase.from('officials').upsert({
+              id: o.id || Date.now().toString(),
+              name: o.name,
+              nip: o.nip,
+              jabatan: o.jabatan,
+              role: o.role
+            });
+            if (error) alert(`Gagal: ${error.message}`);
+            else await refreshData();
+          }
+        }} onDelete={async (id) => {
+          if (supabase && confirm('Hapus pejabat internal?')) {
+            const { error } = await supabase.from('officials').delete().eq('id', id);
             if (error) alert(`Gagal: ${error.message}`);
             else await refreshData();
           }

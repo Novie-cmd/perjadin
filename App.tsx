@@ -568,31 +568,67 @@ const App: React.FC = () => {
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
 
         {viewMode === ViewMode.PRINT_MENU && (
-           <div className="bg-white rounded-3xl border overflow-hidden">
+           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
-               <h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3>
-               <button onClick={() => setShowDestManager(true)} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Kelola Pejabat Tujuan</button>
+               <div className="flex items-center gap-3">
+                 <Printer size={20} className="text-blue-600" />
+                 <h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3>
+               </div>
+               <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300">
+                 <Settings2 size={14}/> Kelola Pejabat Tujuan
+               </button>
              </div>
-             <table className="w-full text-left">
-               <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b">
-                 <tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4">Opsi Cetak</th></tr>
-               </thead>
-               <tbody className="divide-y">
-                 {assignments.map(item => (
-                   <tr key={item.id} className="hover:bg-slate-50">
-                     <td className="px-6 py-5">
-                       <div className="font-bold text-xs">{item.assignmentNumber}</div>
-                       <div className="text-[10px] text-slate-400">{item.destination}</div>
-                     </td>
-                     <td className="px-6 py-5 text-right flex gap-2 justify-end">
-                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.SPT); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase">SPT</button>
-                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.SPPD_FRONT); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black uppercase">SPD</button>
-                        <button onClick={() => { setActiveAssignment(item); setPrintType(PrintType.KUITANSI); setViewMode(ViewMode.PRINT_PREVIEW); }} className="px-2 py-1 bg-amber-50 text-amber-600 rounded text-[9px] font-black uppercase">Kwitansi</button>
-                     </td>
+             <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100">
+                   <tr>
+                     <th className="px-6 py-4">Nomor & Tujuan</th>
+                     <th className="px-6 py-4">Pejabat Pengesah (Tujuan)</th>
+                     <th className="px-6 py-4 text-right">Opsi Cetak</th>
                    </tr>
-                 ))}
-               </tbody>
-             </table>
+                 </thead>
+                 <tbody className="divide-y divide-slate-100">
+                   {assignments.map(item => (
+                     <tr key={item.id} className="hover:bg-slate-50 transition">
+                       <td className="px-6 py-5">
+                         <div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div>
+                         <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
+                       </td>
+                       <td className="px-6 py-5">
+                         <select className="w-full max-w-[220px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white text-slate-700 shadow-sm" value={item.destinationOfficialId || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, e.target.value)}>
+                           <option value="">-- Pilih Pejabat Tujuan --</option>
+                           {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name} ({doff.jabatan})</option>))}
+                         </select>
+                       </td>
+                       <td className="px-6 py-5 text-right">
+                         <div className="flex gap-2 flex-wrap justify-end">
+                           {[
+                             { label: 'SPT', type: PrintType.SPT, color: 'blue' },
+                             { label: 'SPD Dpn', type: PrintType.SPPD_FRONT, color: 'emerald' },
+                             { label: 'SPD Blk', type: PrintType.SPPD_BACK, color: 'emerald' },
+                             { label: 'Kuitansi', type: PrintType.KUITANSI, color: 'amber' },
+                             { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
+                             { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
+                           ].map(btn => (
+                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                               btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : 
+                               btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : 
+                               btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : 
+                               btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : 
+                               'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white'}`}>
+                               {btn.label}
+                             </button>
+                           ))}
+                         </div>
+                       </td>
+                     </tr>
+                   ))}
+                   {assignments.length === 0 && (
+                     <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>
+                   )}
+                 </tbody>
+               </table>
+             </div>
            </div>
         )}
 

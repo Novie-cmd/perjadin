@@ -165,7 +165,7 @@ const App: React.FC = () => {
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
-        startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
+        startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
         destinationOfficialId: a.destination_official_id, signDate: a.sign_date, signedAt: a.signed_at 
       })));
@@ -247,7 +247,7 @@ const App: React.FC = () => {
           {printType === PrintType.SPPD_FRONT && <SPPDFrontTemplate {...props} />}
           {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} />}
           {printType === PrintType.LAMPIRAN_III && <LampiranIIITemplate {...props} />}
-          {printType === PrintType.KUITANSI && <KUITANSITemplate {...props} />}
+          {printType === PrintType.KUITANSI && <KuitansiTemplate {...props} />}
           {printType === PrintType.DAFTAR_PENERIMAAN && <DaftarPenerimaanTemplate {...props} />}
         </div>
       </div>
@@ -324,11 +324,11 @@ const App: React.FC = () => {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Pie Chart Card */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                   <PieChartIcon size={16} className="text-indigo-600"/> Perbandingan Wilayah
                 </h3>
-                <div className="flex-1 h-64 w-full">
+                <div className="flex-1 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <RePieChart>
                       <Pie
@@ -355,16 +355,16 @@ const App: React.FC = () => {
               </div>
 
               {/* Bar Chart Card */}
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                   <Map size={16} className="text-indigo-600"/> Statistik Tujuan NTB
                 </h3>
-                <div className="flex-1 h-64 w-full">
+                <div className="flex-1 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <ReBarChart
                       layout="vertical"
                       data={chartData.ntbDestStats}
-                      margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                       <XAxis type="number" hide />
@@ -389,7 +389,6 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
-            // Fix: Replaced incorrect snake_case access and used camelCase SKPDConfig properties
             const { error } = await supabase.from('skpd_config').upsert({ 
               id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, 
               lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, 

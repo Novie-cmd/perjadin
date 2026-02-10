@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   ViewMode, Employee, TravelAssignment, PrintType, 
@@ -24,9 +23,14 @@ import {
 import { 
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
-  BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck
+  BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
+  PieChart as PieChartIcon
 } from 'lucide-react';
-import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
+import { 
+  PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
+  BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
+} from 'recharts';
+import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
 
 const App: React.FC = () => {
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
@@ -60,6 +64,28 @@ const App: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
+
+  // Computed Chart Data
+  const chartData = useMemo(() => {
+    // 1. Travel Type Stats
+    const typeCounts = assignments.reduce((acc, curr) => {
+      acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const pieData = [
+      { name: 'Dalam Daerah', value: typeCounts['DALAM_DAERAH'] || 0, color: '#4f46e5' },
+      { name: 'Luar Daerah', value: typeCounts['LUAR_DAERAH'] || 0, color: '#10b981' }
+    ];
+
+    // 2. NTB Destination Stats
+    const ntbDestStats = LIST_KOTA_NTB.map(city => {
+      const count = assignments.filter(a => a.destination === city).length;
+      return { name: city, count };
+    }).sort((a, b) => b.count - a.count);
+
+    return { pieData, ntbDestStats };
+  }, [assignments]);
 
   useEffect(() => {
     const savedUrl = localStorage.getItem('SB_URL');
@@ -112,7 +138,7 @@ const App: React.FC = () => {
         supabase.from('assignments').select('*').order('created_at', { ascending: false })
       ]);
 
-      if (skpdErr && skpdErr.code !== 'PGRST116') throw skpdErr; // PGRST116 is just 'no rows'
+      if (skpdErr && skpdErr.code !== 'PGRST116') throw skpdErr; 
 
       if (empData) setEmployees(empData.map(e => ({ 
         id: e.id, name: e.name, nip: e.nip, pangkatGol: e.pangkat_gol, 
@@ -139,7 +165,7 @@ const App: React.FC = () => {
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
-        startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
+        startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
         destinationOfficialId: a.destination_official_id, signDate: a.sign_date, signedAt: a.signed_at 
       })));
@@ -221,7 +247,7 @@ const App: React.FC = () => {
           {printType === PrintType.SPPD_FRONT && <SPPDFrontTemplate {...props} />}
           {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} />}
           {printType === PrintType.LAMPIRAN_III && <LampiranIIITemplate {...props} />}
-          {printType === PrintType.KUITANSI && <KuitansiTemplate {...props} />}
+          {printType === PrintType.KUITANSI && <KUITANSITemplate {...props} />}
           {printType === PrintType.DAFTAR_PENERIMAAN && <DaftarPenerimaanTemplate {...props} />}
         </div>
       </div>
@@ -294,11 +320,76 @@ const App: React.FC = () => {
                  <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Status Sinkron</div>
                </div>
             </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Pie Chart Card */}
+              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+                <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <PieChartIcon size={16} className="text-indigo-600"/> Perbandingan Wilayah
+                </h3>
+                <div className="flex-1 h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie
+                        data={chartData.pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {chartData.pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                      />
+                      <Legend verticalAlign="bottom" height={36}/>
+                    </RePieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Bar Chart Card */}
+              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col">
+                <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <Map size={16} className="text-indigo-600"/> Statistik Tujuan NTB
+                </h3>
+                <div className="flex-1 h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ReBarChart
+                      layout="vertical"
+                      data={chartData.ntbDestStats}
+                      margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                      <XAxis type="number" hide />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={100} 
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                      />
+                      <Tooltip 
+                        cursor={{ fill: '#f8fafc' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                      />
+                      <Bar dataKey="count" name="Kunjungan" fill="#4f46e5" radius={[0, 4, 4, 0]} />
+                    </ReBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
+            // Fix: Replaced incorrect snake_case access and used camelCase SKPDConfig properties
             const { error } = await supabase.from('skpd_config').upsert({ 
               id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, 
               lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, 

@@ -66,6 +66,12 @@ CREATE TABLE IF NOT EXISTS sub_activities (
   code TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   budget_code TEXT,
+  anggaran NUMERIC DEFAULT 0,
+  spd TEXT,
+  triwulan1 NUMERIC DEFAULT 0,
+  triwulan2 NUMERIC DEFAULT 0,
+  triwulan3 NUMERIC DEFAULT 0,
+  triwulan4 NUMERIC DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -54,6 +54,12 @@ export interface SubActivity {
   code: string;
   name: string;
   budgetCode?: string;
+  anggaran: number;
+  spd: string;
+  triwulan1: number;
+  triwulan2: number;
+  triwulan3: number;
+  triwulan4: number;
 }
 
 export interface TravelCost {
@@ -87,6 +93,7 @@ export interface TravelAssignment {
   selectedEmployeeIds: string[];
   costs: TravelCost[];
   signedAt: string;
+  // Fix: Changed from sign_date to signDate to fix 'property does not exist' errors across components
   signDate: string;
   pptkId?: string;
   signerId?: string;

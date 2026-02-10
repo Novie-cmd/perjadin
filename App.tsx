@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
@@ -67,7 +68,6 @@ const App: React.FC = () => {
 
   // Computed Chart Data
   const chartData = useMemo(() => {
-    // 1. Travel Type Stats
     const typeCounts = assignments.reduce((acc, curr) => {
       acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
       return acc;
@@ -78,7 +78,6 @@ const App: React.FC = () => {
       { name: 'Luar Daerah', value: typeCounts['LUAR_DAERAH'] || 0, color: '#10b981' }
     ];
 
-    // 2. NTB Destination Stats
     const ntbDestStats = LIST_KOTA_NTB.map(city => {
       const count = assignments.filter(a => a.destination === city).length;
       return { name: city, count };
@@ -161,7 +160,17 @@ const App: React.FC = () => {
         seaTransport: Number(c.sea_transport), airTransport: Number(c.air_transport), 
         taxi: Number(c.taxi) 
       })));
-      if (subData) setSubActivities(subData);
+      if (subData) setSubActivities(subData.map(s => ({
+        code: s.code,
+        name: s.name,
+        budgetCode: s.budget_code,
+        anggaran: Number(s.anggaran || 0),
+        spd: s.spd || '',
+        triwulan1: Number(s.triwulan1 || 0),
+        triwulan2: Number(s.triwulan2 || 0),
+        triwulan3: Number(s.triwulan3 || 0),
+        triwulan4: Number(s.triwulan4 || 0)
+      })));
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
@@ -171,7 +180,7 @@ const App: React.FC = () => {
       })));
     } catch (err: any) {
       console.error(err);
-      setError(`Database Error: ${err.message}. Pastikan script setup.sql sudah dijalankan di Supabase.`);
+      setError(`Database Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -321,9 +330,7 @@ const App: React.FC = () => {
                </div>
             </div>
 
-            {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              {/* Pie Chart Card */}
               <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                   <PieChartIcon size={16} className="text-indigo-600"/> Perbandingan Wilayah
@@ -354,7 +361,6 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bar Chart Card */}
               <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                   <Map size={16} className="text-indigo-600"/> Statistik Tujuan NTB
@@ -503,9 +509,23 @@ const App: React.FC = () => {
             }
           }} onSaveSub={async (sub) => {
             if (supabase) {
-              const { error } = await supabase.from('sub_activities').upsert({ code: sub.code, name: sub.name });
+              // PERBAIKAN: Sertakan budget_code agar data tidak terhapus saat upsert
+              const { error } = await supabase.from('sub_activities').upsert({ 
+                code: sub.code, 
+                name: sub.name,
+                budget_code: sub.budgetCode,
+                anggaran: sub.anggaran,
+                spd: sub.spd,
+                triwulan1: sub.triwulan1,
+                triwulan2: sub.triwulan2,
+                triwulan3: sub.triwulan3,
+                triwulan4: sub.triwulan4
+              });
               if (error) alert(`Gagal: ${error.message}`);
-              else await refreshData();
+              else {
+                await refreshData();
+                alert('Data Sub Kegiatan berhasil diperbarui!');
+              }
             }
           }} onDeleteSub={async (code) => {
             if (supabase) {

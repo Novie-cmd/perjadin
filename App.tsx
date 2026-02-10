@@ -189,7 +189,6 @@ const App: React.FC = () => {
 
   const handleSaveAssignment = async (data: TravelAssignment) => {
     if (!supabase) return;
-    // Fix: Using data.durationDays instead of data.duration_days to match TravelAssignment interface
     const { error } = await supabase.from('assignments').upsert({
       id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
       purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
@@ -509,11 +508,11 @@ const App: React.FC = () => {
             }
           }} onSaveSub={async (sub) => {
             if (!supabase) return;
-            // MEMASTIKAN NAMA KOLOM SESUAI DENGAN DATABASE
+            // PERBAIKAN: Mapping budgetCode (camelCase) ke budget_code (snake_case) di database
             const { error } = await supabase.from('sub_activities').upsert({ 
               code: sub.code, 
               name: sub.name,
-              budget_code: sub.budget_code || '',
+              budget_code: sub.budgetCode || '',
               anggaran: sub.anggaran,
               spd: sub.spd,
               triwulan1: sub.triwulan1,
@@ -523,7 +522,7 @@ const App: React.FC = () => {
             });
             if (error) {
               alert(`Gagal menyimpan ke database: ${error.message}`);
-              throw error; // Re-throw agar ditangkap di form
+              throw error; 
             } else {
               await refreshData();
               alert('Data Sub Kegiatan berhasil disimpan!');

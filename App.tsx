@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
@@ -24,12 +25,13 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
+import { formatCurrency, formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER, LIST_KOTA_NTB } from './constants';
 
 const App: React.FC = () => {
@@ -64,6 +66,54 @@ const App: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
+
+  // Kalkulasi Keuangan Real-time
+  const financialStats = useMemo(() => {
+    // 1. Hitung Realisasi per Sub Kegiatan
+    const realizationMap = assignments.reduce((acc, curr) => {
+      const code = curr.subActivityCode;
+      const totalAssignmentCost = curr.costs.reduce((sum, cost) => {
+        const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
+        const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
+        const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
+        const repres = (cost.representation || 0) * (cost.representationDays || 0);
+        return sum + daily + lodging + transport + repres;
+      }, 0);
+
+      acc[code] = (acc[code] || 0) + totalAssignmentCost;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // 2. Olah Data Sub Kegiatan untuk Tabel Dashboard
+    const subSummary = subActivities
+      .filter(s => s.anggaran > 0)
+      .map(s => {
+        const realization = realizationMap[s.code] || 0;
+        const spdValue = Number(s.spd) || 0;
+        return {
+          ...s,
+          realization,
+          sisaSpd: spdValue - realization,
+          sisaAnggaran: s.anggaran - realization
+        };
+      });
+
+    // 3. Hitung Total Keseluruhan
+    const totalAnggaran = subActivities.reduce((sum, s) => sum + s.anggaran, 0);
+    const totalSpd = subActivities.reduce((sum, s) => sum + (Number(s.spd) || 0), 0);
+    const totalRealisasi = Object.values(realizationMap).reduce((sum, v) => sum + v, 0);
+
+    return {
+      subSummary,
+      totals: {
+        anggaran: totalAnggaran,
+        spd: totalSpd,
+        realisasi: totalRealisasi,
+        sisaSpd: totalSpd - totalRealisasi,
+        sisaAnggaran: totalAnggaran - totalRealisasi
+      }
+    };
+  }, [subActivities, assignments]);
 
   // Computed Chart Data
   const chartData = useMemo(() => {
@@ -296,43 +346,122 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{viewMode.replace('_', ' ')}</h2>
             <p className="text-slate-500 text-[10px] font-bold uppercase mt-1 flex items-center gap-1"><Building2 size={12} /> {skpdConfig.namaSkpd}</p>
           </div>
-          {viewMode === ViewMode.TRAVEL_LIST && (
-            <button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-xl transition hover:bg-blue-700 flex items-center gap-2">
-              <Plus size={18} /> Buat SPT Baru
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+             <div className="hidden lg:flex flex-col items-end">
+                <span className="text-[10px] font-black text-slate-400 uppercase">Sisa SPD Global</span>
+                <span className="text-sm font-black text-blue-600">Rp {formatNumber(financialStats.totals.sisaSpd)}</span>
+             </div>
+            {viewMode === ViewMode.TRAVEL_LIST && (
+              <button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-xl transition hover:bg-blue-700 flex items-center gap-2">
+                <Plus size={18} /> Buat SPT Baru
+              </button>
+            )}
+          </div>
         </header>
 
         {viewMode === ViewMode.DASHBOARD && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                 <div className="text-3xl font-black text-blue-600">{employees.length}</div>
-                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Total Pegawai</div>
+          <div className="space-y-8">
+            {/* Kartu Finansial Utama */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-blue-200 transition">
+                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
+                  <Landmark size={20} />
+                </div>
+                <div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.anggaran)}</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Anggaran</div>
+              </div>
+              
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-emerald-200 transition">
+                <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
+                  <TrendingUp size={20} />
+                </div>
+                <div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.spd)}</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">SPD Akumulasi</div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-indigo-200 transition">
+                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+                  <Coins size={20} />
+                </div>
+                <div className="text-lg font-black text-indigo-700 leading-tight">Rp {formatNumber(financialStats.totals.realisasi)}</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Realisasi</div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-amber-200 transition">
+                <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
+                  <Wallet size={20} />
+                </div>
+                <div className="text-lg font-black text-amber-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaSpd)}</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa SPD Akumulasi</div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-rose-200 transition">
+                <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-3">
+                  <AlertCircle size={20} />
+                </div>
+                <div className="text-lg font-black text-rose-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaAnggaran)}</div>
+                <div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa Anggaran</div>
+              </div>
+            </div>
+
+            {/* Tabel Ringkasan Sub Kegiatan */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+               <div className="p-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
+                 <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-100">
+                    <BarChart3 size={18} />
+                 </div>
+                 <div>
+                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Informasi Sub Kegiatan & Serapan</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 italic">Hanya menampilkan kegiatan dengan anggaran > Rp 0</p>
+                 </div>
                </div>
-               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                 <div className="text-3xl font-black text-emerald-600">{assignments.length}</div>
-                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">SPT Terbit</div>
-               </div>
-               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                 <div className="text-3xl font-black text-amber-600">{officials.length}</div>
-                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Pejabat Internal</div>
-               </div>
-               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                 <div className="text-3xl font-black text-slate-800 italic">Cloud</div>
-                 <div className="text-slate-400 text-[10px] font-black uppercase mt-1">Status Sinkron</div>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left">
+                   <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-widest border-b border-slate-100">
+                     <tr>
+                       <th className="px-6 py-4">Kode & Nama Sub Kegiatan</th>
+                       <th className="px-6 py-4 text-right">Total Anggaran</th>
+                       <th className="px-6 py-4 text-right">SPD Akumulasi</th>
+                       <th className="px-6 py-4 text-right">Realisasi (SPT)</th>
+                       <th className="px-6 py-4 text-right">Sisa SPD</th>
+                       <th className="px-6 py-4 text-right">Sisa Anggaran</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100">
+                     {financialStats.subSummary.map(item => (
+                       <tr key={item.code} className="hover:bg-slate-50 transition text-[11px]">
+                         <td className="px-6 py-4">
+                           <div className="font-black text-blue-600 uppercase tracking-tighter">{item.code}</div>
+                           <div className="text-slate-600 font-medium line-clamp-1 max-w-xs">{item.name}</div>
+                         </td>
+                         <td className="px-6 py-4 text-right font-bold text-slate-700">Rp {formatNumber(item.anggaran)}</td>
+                         <td className="px-6 py-4 text-right font-bold text-emerald-600">Rp {formatNumber(Number(item.spd) || 0)}</td>
+                         <td className="px-6 py-4 text-right font-black text-indigo-700">Rp {formatNumber(item.realization)}</td>
+                         <td className="px-6 py-4 text-right">
+                            <span className={`font-black ${item.sisaSpd < 0 ? 'text-rose-600' : 'text-amber-600'}`}>
+                               Rp {formatNumber(item.sisaSpd)}
+                            </span>
+                         </td>
+                         <td className="px-6 py-4 text-right font-black text-slate-400">Rp {formatNumber(item.sisaAnggaran)}</td>
+                       </tr>
+                     ))}
+                     {financialStats.subSummary.length === 0 && (
+                       <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada data sub kegiatan dengan anggaran yang terdaftar.</td></tr>
+                     )}
+                   </tbody>
+                 </table>
                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
-                <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <PieChartIcon size={16} className="text-indigo-600"/> Perbandingan Wilayah
+              <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center flex-col min-h-[300px]">
+                <h3 className="w-full text-left font-black text-slate-800 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <PieChartIcon size={14} className="text-blue-600"/> Komposisi Wilayah (SPT)
                 </h3>
                 <div className="flex-1 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -341,8 +470,8 @@ const App: React.FC = () => {
                         data={chartData.pieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
+                        innerRadius={50}
+                        outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
                       >
@@ -351,18 +480,17 @@ const App: React.FC = () => {
                         ))}
                       </Pie>
                       <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                        itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
                       />
-                      <Legend verticalAlign="bottom" height={36}/>
+                      <Legend verticalAlign="bottom" height={36} iconSize={8} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}/>
                     </RePieChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col min-h-[400px]">
-                <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
-                  <Map size={16} className="text-indigo-600"/> Statistik Tujuan NTB
+              <div className="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center flex-col min-h-[300px]">
+                <h3 className="w-full text-left font-black text-slate-800 text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Map size={14} className="text-blue-600"/> Statistik Tujuan NTB
                 </h3>
                 <div className="flex-1 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -377,11 +505,11 @@ const App: React.FC = () => {
                         dataKey="name" 
                         type="category" 
                         width={100} 
-                        tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                        tick={{ fontSize: 9, fontWeight: 700, fill: '#64748b' }} 
                       />
                       <Tooltip 
                         cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '10px', fontWeight: 'bold' }}
                       />
                       <Bar dataKey="count" name="Kunjungan" fill="#4f46e5" radius={[0, 4, 4, 0]} />
                     </ReBarChart>
@@ -508,7 +636,6 @@ const App: React.FC = () => {
             }
           }} onSaveSub={async (sub) => {
             if (!supabase) return;
-            // PERBAIKAN: Mapping budgetCode (camelCase) ke budget_code (snake_case) di database
             const { error } = await supabase.from('sub_activities').upsert({ 
               code: sub.code, 
               name: sub.name,

@@ -16,7 +16,10 @@ const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
   const provinsiValue = skpd.provinsi?.trim() || '';
   
-  // Cek apakah nama SKPD sudah mengandung teks Provinsi yang diinput
+  // Tentukan teks untuk Baris 1 (Pemerintah) - Gunakan fallback jika kosong
+  const displayProvinsiBaris1 = provinsiValue || "PROVINSI NUSA TENGGARA BARAT";
+  
+  // Cek apakah nama SKPD sudah mengandung teks Provinsi yang diinput (untuk Baris 3)
   const isProvInName = provinsiValue && (
     skpd.namaSkpd.toUpperCase().includes(provinsiValue.toUpperCase()) ||
     skpd.namaSkpd.toUpperCase().includes(provinsiValue.toUpperCase().replace('PROVINSI ', 'PROV. '))
@@ -38,19 +41,17 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
           <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
         </div>
         <div className="flex-1 px-2">
-          {/* Baris 1: Pemerintah (Hanya tampil jika provinsi diisi) */}
-          {provinsiValue && (
-            <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">
-              Pemerintah {provinsiValue}
-            </h3>
-          )}
+          {/* Baris 1: Pemerintah (Selalu tampil, default ke NTB jika field provinsi kosong) */}
+          <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">
+            Pemerintah {displayProvinsiBaris1}
+          </h3>
           
           {/* Baris 2: Nama SKPD (1 baris, font menyesuaikan) */}
           <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>
             {skpd.namaSkpd}
           </h2>
           
-          {/* Baris 3: Tampilkan hanya jika provinsi diisi DAN belum ada di Nama SKPD (Baris 2) */}
+          {/* Baris 3: Tampilkan hanya jika field provinsi diisi DAN teks tersebut tidak ada di Baris 2 */}
           {provinsiValue && !isProvInName && (
             <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>
               {provinsiValue.toUpperCase()}

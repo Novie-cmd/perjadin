@@ -455,7 +455,21 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
-            const { error } = await supabase.from('skpd_config').upsert({ id: 'main', ...cfg });
+            const { error } = await supabase.from('skpd_config').upsert({ 
+              id: 'main', 
+              provinsi: cfg.provinsi,
+              nama_skpd: cfg.namaSkpd,
+              alamat: cfg.alamat,
+              lokasi: cfg.lokasi,
+              kepala_nama: cfg.kepalaNama,
+              kepala_nip: cfg.kepalaNip,
+              kepala_jabatan: cfg.kepalaJabatan,
+              bendahara_nama: cfg.bendaharaNama,
+              bendahara_nip: cfg.bendaharaNip,
+              pptk_nama: cfg.pptkNama,
+              pptk_nip: cfg.pptkNip,
+              logo: cfg.logo
+            });
             if (error) alert(error.message); else await refreshData();
           }
         }} />}

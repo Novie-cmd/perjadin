@@ -20,10 +20,10 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => (
         <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
       </div>
       <div className="flex-1">
-        <h3 className="text-[12pt] font-bold uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
-        <h2 className="text-[14pt] font-extrabold uppercase leading-tight my-1">{skpd.namaSkpd}</h2>
-        <p className="text-[10pt] leading-tight mt-1">{skpd.alamat}</p>
-        <p className="text-[10pt] font-bold uppercase tracking-tight">{skpd.lokasi || '..........'}</p>
+        <h3 className="text-[15pt] font-normal uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
+        <h2 className="text-[20pt] font-bold uppercase leading-tight my-1">{skpd.namaSkpd}</h2>
+        <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
+        <p className="text-[10pt] font-bold uppercase tracking-tight">{skpd.lokasi || 'MATARAM'}</p>
       </div>
       <div className="w-24 h-24 flex-shrink-0 opacity-0">Logo</div>
     </div>
@@ -66,7 +66,7 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
     <div className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt]">
       <Header skpd={skpd} />
       <div className="text-center mb-6">
-        <h2 className="text-[12pt] font-bold underline uppercase decoration-1 underline-offset-2">Surat Perintah Tugas</h2>
+        <h2 className="text-[12pt] font-bold underline uppercase decoration-1 underline-offset-2">Surat Tugas</h2>
         <p className="font-medium">Nomor : {assignment.assignmentNumber}</p>
       </div>
 
@@ -133,7 +133,7 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
 
       <div className="mt-12 flex justify-end">
         <div className="w-[320px] text-left pl-4">
-          <p>Ditetapkan di {skpd.lokasi || '..........'}</p>
+          <p>Ditetapkan di {skpd.lokasi || 'Mataram'}</p>
           <p className="mb-4">Pada Tanggal {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
           <div className="min-h-[60px]">
             <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
@@ -263,7 +263,7 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
       <div className="mt-8 grid grid-cols-2 text-[11pt]">
         <div></div>
         <div className="text-left pl-12">
-          <p>Dikeluarkan di : {skpd.lokasi || '..........'}</p>
+          <p>Dikeluarkan di : {skpd.lokasi || 'Mataram'}</p>
           <p className="mb-4">Pada Tanggal : {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
           <div className="min-h-[50px]">
             <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
@@ -337,7 +337,7 @@ export const SPPDBackTemplate: React.FC<{
                 
                 <span>Ke</span>
                 <span>:</span>
-                <span>{id === 'II' ? (skpd.lokasi || '..........') : ''}</span>
+                <span>{id === 'II' ? (skpd.lokasi || 'Mataram') : ''}</span>
                 
                 <span>Pada tanggal</span>
                 <span>:</span>
@@ -374,7 +374,7 @@ export const SPPDBackTemplate: React.FC<{
       <div className="mt-4 pt-2 border-t border-black text-[10pt]">
         <p className="font-bold uppercase">VI. CATATAN LAIN-LAIN</p>
         <div className="h-4"></div>
-        <p className="font-bold uppercase leading-tight">VII. Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba serta Bendaharawan bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara mendapat rugi akibat kesalahan, kealpaannya.</p>
+        <p className="font-bold uppercase tracking-tight leading-tight">VII. Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba serta Bendaharawan bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara mendapat rugi akibat kesalahan, kealpaannya.</p>
       </div>
     </div>
   );
@@ -456,7 +456,7 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
                   <p>NIP. {bendahara.nip}</p>
                </div>
                <div>
-                  <p>{skpd.lokasi || '..........'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+                  <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
                   <p>Telah menerima jumlah uang sebesar :</p>
                   <p className="mb-1">Rp. {formatNumber(grandTotal)}</p>
                   <div className="min-h-[40px]">
@@ -552,7 +552,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
           </div>
         </div>
         <div className="flex flex-col">
-          <p>{skpd.lokasi || '..........'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+          <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
           <div className="h-[85px] flex items-start justify-center overflow-hidden">
             <p className="font-bold uppercase">Yang menerima uang,</p>
           </div>
@@ -657,7 +657,7 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
             <p>NIP. {kepala.nip}</p>
           </div>
           <div className="pr-12">
-            <p>{skpd.lokasi || '..........'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+            <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
             <div className="min-h-[50px]">
               <p className="font-bold uppercase mb-4">{bendahara.jabatan}</p>
             </div>

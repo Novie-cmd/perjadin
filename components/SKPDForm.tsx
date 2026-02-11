@@ -130,9 +130,8 @@ export const SKPDForm: React.FC<Props> = ({ config, onSave }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-black text-slate-500 uppercase">Lokasi TTD (Kota)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase">Lokasi TTD (Kota) - Opsional</label>
               <input 
-                required
                 className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition uppercase"
                 value={formData.lokasi}
                 onChange={e => setFormData({...formData, lokasi: e.target.value})}

@@ -14,7 +14,10 @@ interface Props {
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
-  // Logika penyesuaian font agar tetap 1 baris (whitespace-nowrap)
+  // Cek apakah nama SKPD sudah mengandung teks Provinsi NTB
+  const isNtbAlreadyInName = skpd.namaSkpd.toUpperCase().includes("PROVINSI NUSA TENGGARA BARAT") || 
+                             skpd.namaSkpd.toUpperCase().includes("PROV. NUSA TENGGARA BARAT");
+  
   const nameLen = skpd.namaSkpd.length;
   let skpdFontSize = 'text-[20pt]';
   
@@ -31,7 +34,7 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
           <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
         </div>
         <div className="flex-1 px-2">
-          {/* Baris 1: Pemerintah (1 baris, lebih kecil) */}
+          {/* Baris 1: Pemerintah (Tetap 1 baris, font lebih kecil) */}
           <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">
             Pemerintah Provinsi Nusa Tenggara Barat
           </h3>
@@ -41,10 +44,12 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
             {skpd.namaSkpd}
           </h2>
           
-          {/* Baris 3: Provinsi (1 baris, font sama dengan SKPD) */}
-          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>
-            PROVINSI NUSA TENGGARA BARAT
-          </h2>
+          {/* Baris 3: Tampilkan hanya jika belum ada di Nama SKPD (Baris 2) */}
+          {!isNtbAlreadyInName && (
+            <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>
+              PROVINSI NUSA TENGGARA BARAT
+            </h2>
+          )}
 
           <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
           {skpd.lokasi && (

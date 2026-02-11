@@ -96,9 +96,8 @@ export const SKPDForm: React.FC<Props> = ({ config, onSave }) => {
             <div className="space-y-1">
               <label className="block text-xs font-black text-slate-500 uppercase">Nama Provinsi</label>
               <input 
-                required
                 className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition"
-                value={formData.provinsi}
+                value={formData.provinsi || ''}
                 onChange={e => setFormData({...formData, provinsi: e.target.value})}
                 placeholder="Contoh: Provinsi Nusa Tenggara Barat"
               />

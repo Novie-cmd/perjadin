@@ -26,7 +26,7 @@ export interface Official {
 }
 
 export interface SKPDConfig {
-  provinsi: string;
+  provinsi?: string;
   namaSkpd: string;
   alamat: string;
   lokasi: string;

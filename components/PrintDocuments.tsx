@@ -23,7 +23,9 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => (
         <h3 className="text-[15pt] font-normal uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
         <h2 className="text-[20pt] font-bold uppercase leading-tight my-1">{skpd.namaSkpd}</h2>
         <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
-        <p className="text-[10pt] font-bold uppercase tracking-tight">{skpd.lokasi || 'MATARAM'}</p>
+        {skpd.lokasi && (
+          <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>
+        )}
       </div>
       <div className="w-24 h-24 flex-shrink-0 opacity-0">Logo</div>
     </div>

@@ -65,20 +65,8 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
           </button>
         </form>
 
-        <div className="mt-10 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50">
-          <h4 className="text-[10px] font-black text-slate-300 uppercase flex items-center gap-2 mb-3">
-            <Info size={12} className="text-blue-400" /> Cara Persiapan :
-          </h4>
-          <ol className="text-[10px] text-slate-400 space-y-2 list-decimal pl-4 font-medium leading-relaxed">
-            <li>Buat proyek baru di <a href="https://supabase.com" target="_blank" className="text-blue-400 hover:underline inline-flex items-center gap-0.5">supabase.com <ExternalLink size={8}/></a> (Gratis).</li>
-            <li>Salin URL dan Anon Key dari menu <b>Project Settings {'>'} API</b>.</li>
-            <li>Buka <b>SQL Editor</b>, lalu jalankan script <code>setup.sql</code> dari repository aplikasi ini.</li>
-            <li>Simpan kredensial di atas dan Anda siap bekerja!</li>
-          </ol>
-        </div>
-
-        <p className="text-center text-[10px] text-slate-600 mt-6 font-bold uppercase tracking-tighter">
-          Data disimpan secara lokal di browser Anda.
+        <p className="text-center text-[10px] text-slate-600 mt-8 font-bold uppercase tracking-tighter">
+          Data kredensial disimpan secara lokal di browser Anda.
         </p>
       </div>
     </div>

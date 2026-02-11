@@ -13,26 +13,34 @@ interface Props {
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
-const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => (
-  <div className="text-center mb-4 font-['Tahoma']">
-    <div className="flex items-center justify-between gap-6 pb-2">
-      <div className="w-24 h-24 flex items-center justify-center flex-shrink-0">
-        <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
+const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
+  // Logika penyesuaian font: Nama panjang (>40 karakter) diasumsikan 2 baris
+  const isLongName = skpd.namaSkpd.length > 40;
+  const fontSizeClass = isLongName ? 'text-[17pt]' : 'text-[20pt]';
+
+  return (
+    <div className="text-center mb-4 font-['Tahoma']">
+      <div className="flex items-center justify-between gap-6 pb-2">
+        <div className="w-24 h-24 flex items-center justify-center flex-shrink-0">
+          <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
+        </div>
+        <div className="flex-1 px-4">
+          <h3 className="text-[15pt] font-normal uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
+          <h2 className={`${fontSizeClass} font-bold uppercase leading-tight my-1 line-clamp-2 overflow-hidden`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            {skpd.namaSkpd}
+          </h2>
+          <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
+          {skpd.lokasi && (
+            <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>
+          )}
+        </div>
+        <div className="w-24 h-24 flex-shrink-0 opacity-0">Logo</div>
       </div>
-      <div className="flex-1">
-        <h3 className="text-[15pt] font-normal uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
-        <h2 className="text-[20pt] font-bold uppercase leading-tight my-1">{skpd.namaSkpd}</h2>
-        <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
-        {skpd.lokasi && (
-          <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>
-        )}
-      </div>
-      <div className="w-24 h-24 flex-shrink-0 opacity-0">Logo</div>
+      <div className="border-b-[2.5pt] border-black mt-1"></div>
+      <div className="border-b-[0.5pt] border-black mt-[1.5pt]"></div>
     </div>
-    <div className="border-b-[2.5pt] border-black mt-1"></div>
-    <div className="border-b-[0.5pt] border-black mt-[1.5pt]"></div>
-  </div>
-);
+  );
+};
 
 const getSignatories = (assignment: TravelAssignment, officials: Official[], skpd: SKPDConfig) => {
   const formatFallbackJabatan = () => {

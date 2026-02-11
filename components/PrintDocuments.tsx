@@ -14,9 +14,15 @@ interface Props {
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
-  // Logika penyesuaian font: Nama panjang (>40 karakter) diasumsikan 2 baris
-  const isLongName = skpd.namaSkpd.length > 40;
-  const fontSizeClass = isLongName ? 'text-[17pt]' : 'text-[20pt]';
+  // Logika penyesuaian font agar tetap 1 baris (whitespace-nowrap)
+  const nameLen = skpd.namaSkpd.length;
+  let skpdFontSize = 'text-[20pt]';
+  
+  if (nameLen > 55) {
+    skpdFontSize = 'text-[14pt]';
+  } else if (nameLen > 40) {
+    skpdFontSize = 'text-[17pt]';
+  }
 
   return (
     <div className="text-center mb-4 font-['Tahoma']">
@@ -24,11 +30,22 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
         <div className="w-24 h-24 flex items-center justify-center flex-shrink-0">
           <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
         </div>
-        <div className="flex-1 px-4">
-          <h3 className="text-[15pt] font-normal uppercase leading-tight">Pemerintah {skpd.provinsi}</h3>
-          <h2 className={`${fontSizeClass} font-bold uppercase leading-tight my-1 line-clamp-2 overflow-hidden`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+        <div className="flex-1 px-2">
+          {/* Baris 1: Pemerintah (1 baris, lebih kecil) */}
+          <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">
+            Pemerintah Provinsi Nusa Tenggara Barat
+          </h3>
+          
+          {/* Baris 2: Nama SKPD (1 baris, font menyesuaikan) */}
+          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>
             {skpd.namaSkpd}
           </h2>
+          
+          {/* Baris 3: Provinsi (1 baris, font sama dengan SKPD) */}
+          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>
+            PROVINSI NUSA TENGGARA BARAT
+          </h2>
+
           <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
           {skpd.lokasi && (
             <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>

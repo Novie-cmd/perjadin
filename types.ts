@@ -98,7 +98,7 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialId?: string; // Reference to Pejabat Tujuan
+  destinationOfficialIds?: string[]; // Diubah ke array untuk mendukung Blok II, III, IV
 }
 
 export enum ViewMode {

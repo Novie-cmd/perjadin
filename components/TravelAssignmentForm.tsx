@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
+import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official, DestinationOfficial } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
 import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck } from 'lucide-react';
@@ -10,7 +10,7 @@ interface Props {
   masterCosts: MasterCost[];
   subActivities: SubActivity[];
   officials: Official[];
-  destinationOfficials: any[];
+  destinationOfficials: DestinationOfficial[];
   initialData?: TravelAssignment;
   onSave: (data: TravelAssignment) => void;
   onCancel: () => void;
@@ -21,6 +21,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
   masterCosts, 
   subActivities, 
   officials, 
+  destinationOfficials,
   initialData, 
   onSave, 
   onCancel
@@ -48,7 +49,8 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || ''
+      bendaharaId: defaultBendahara?.id || '',
+      destinationOfficialIds: ['', '']
     };
   });
 
@@ -150,6 +152,14 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     }));
   };
 
+  const updateDestinationOfficial = (index: number, id: string) => {
+    setFormData(prev => {
+      const current = [...(prev.destinationOfficialIds || ['', ''])];
+      current[index] = id;
+      return { ...prev, destinationOfficialIds: current };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.selectedEmployeeIds?.length) { alert("Pilih minimal satu pegawai"); return; }
@@ -177,6 +187,35 @@ export const TravelAssignmentForm: React.FC<Props> = ({
           <div><label className="block text-sm font-medium text-gray-700 font-bold">Tanggal Kembali</label><input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 font-bold text-slate-700" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} /></div>
           <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 font-bold">Lama Perjalanan (Hari)</label><div className="flex items-center gap-3 mt-1"><input type="text" readOnly className="w-32 p-2.5 border border-slate-200 rounded-lg bg-slate-50 font-black text-blue-600" value={`${formData.durationDays || 0} Hari`} /><span className="text-[10px] text-slate-400 font-bold uppercase italic">* Dihitung otomatis berdasarkan tanggal</span></div></div>
         </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight"><MapPin className="text-red-600" size={20} /> Pengesah Lokasi Tujuan (Blok II & III)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-1">
+            <label className="block text-xs font-black text-slate-500 uppercase">Pejabat Pengesah Lokasi 1 (Blok II)</label>
+            <select 
+              className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" 
+              value={(formData.destinationOfficialIds || ['', ''])[0]} 
+              onChange={e => updateDestinationOfficial(0, e.target.value)}
+            >
+              <option value="">-- Pilih Pejabat Tujuan --</option>
+              {destinationOfficials.map(o => (<option key={o.id} value={o.id}>{o.name} - {o.instansi}</option>))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-black text-slate-500 uppercase">Pejabat Pengesah Lokasi 2 (Blok III) - Opsional</label>
+            <select 
+              className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" 
+              value={(formData.destinationOfficialIds || ['', ''])[1]} 
+              onChange={e => updateDestinationOfficial(1, e.target.value)}
+            >
+              <option value="">-- Pilih Pejabat Tujuan --</option>
+              {destinationOfficials.map(o => (<option key={o.id} value={o.id}>{o.name} - {o.instansi}</option>))}
+            </select>
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-400 font-bold mt-3 italic uppercase">* Data akan mengisi otomatis pada SPPD Halaman Belakang.</p>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">

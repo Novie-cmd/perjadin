@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TravelAssignment, Employee, PrintType, SKPDConfig, Official } from '../types';
+import { TravelAssignment, Employee, PrintType, SKPDConfig, Official, DestinationOfficial } from '../types';
 import { formatCurrency, numberToWords, formatDateID, formatNumber } from '../utils';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
   employees: Employee[];
   skpd: SKPDConfig;
   officials: Official[];
-  destinationOfficials?: any[];
+  destinationOfficials?: DestinationOfficial[];
 }
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
@@ -248,14 +248,13 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
   );
 };
 
-export const SPPDBackTemplate: React.FC<{ 
-  assignment: TravelAssignment; 
-  skpd: SKPDConfig; 
-  officials: Official[];
-  destinationOfficials: any[];
-}> = ({ assignment, skpd, officials }) => {
+export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials, destinationOfficials = [] }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
   
+  // Ambil data pejabat tujuan berdasarkan ID yang tersimpan di assignment
+  const dest1 = destinationOfficials.find(o => o.id === (assignment.destinationOfficialIds || [])[0]);
+  const dest2 = destinationOfficials.find(o => o.id === (assignment.destinationOfficialIds || [])[1]);
+
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] relative leading-tight">
       <div className="flex justify-end">
@@ -274,27 +273,40 @@ export const SPPDBackTemplate: React.FC<{
       </div>
 
       <div className="space-y-0 border-t border-black">
-        {['II', 'III', 'IV'].map((id, idx) => {
+        {['II', 'III', 'IV'].map((blok, idx) => {
+          // Pilih data pejabat untuk ditampilkan (II=dest1, III=dest2, IV=Kosong/PPTK)
+          const currentDest = idx === 0 ? dest1 : idx === 1 ? dest2 : null;
+          
           return (
-            <div key={id} className="grid grid-cols-2 border-b border-black">
+            <div key={blok} className="grid grid-cols-2 border-b border-black">
               {/* KOLOM TIBA */}
               <div className="border-r border-black p-2 min-h-[160px]">
                 <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
-                  <span className="font-bold">{id}.</span>
+                  <span className="font-bold">{blok}.</span>
                   <span>Tiba di</span>
                   <span>:</span>
-                  <span>{idx === 0 ? assignment.destination : ''}</span>
+                  <span>{idx === 0 ? assignment.destination : idx === 1 ? '......................' : (skpd.lokasi || 'Mataram')}</span>
                   
                   <span></span>
                   <span>Pada tanggal</span>
                   <span>:</span>
-                  <span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
+                  <span>{idx === 0 ? formatDateID(assignment.startDate) : '......................'}</span>
                   
                   <span></span>
                   <span className="align-top">Kepala</span>
                   <span className="align-top">:</span>
-                  <div className="flex flex-col">
-                    <span className="h-12 border-b border-black border-dashed mt-2"></span>
+                  <div className="flex flex-col text-center">
+                    {currentDest ? (
+                      <>
+                        <p className="text-[9pt] font-bold leading-none mt-2 uppercase">{currentDest.jabatan}</p>
+                        <p className="text-[9pt] font-bold leading-none uppercase">{currentDest.instansi}</p>
+                        <div className="h-10"></div>
+                        <p className="text-[9pt] font-bold underline uppercase">{currentDest.name}</p>
+                        <p className="text-[8pt]">NIP. {currentDest.nip}</p>
+                      </>
+                    ) : (
+                      <span className="h-12 border-b border-black border-dashed mt-2"></span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -304,20 +316,30 @@ export const SPPDBackTemplate: React.FC<{
                 <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
                   <span>Berangkat dari</span>
                   <span>:</span>
-                  <span>{idx === 0 ? assignment.destination : ''}</span>
+                  <span>{idx === 0 ? assignment.destination : idx === 1 ? '......................' : '......................'}</span>
                   
                   <span>Ke</span>
                   <span>:</span>
-                  <span>{idx === 0 ? (skpd.lokasi || 'Mataram') : ''}</span>
+                  <span>{idx === 0 ? '......................' : idx === 1 ? (skpd.lokasi || 'Mataram') : '......................'}</span>
                   
                   <span>Pada tanggal</span>
                   <span>:</span>
-                  <span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
+                  <span>{idx === 0 ? '......................' : idx === 1 ? formatDateID(assignment.endDate) : '......................'}</span>
                   
                   <span className="align-top">Kepala</span>
                   <span className="align-top">:</span>
-                  <div className="flex flex-col">
-                    <span className="h-12 border-b border-black border-dashed mt-2"></span>
+                  <div className="flex flex-col text-center">
+                    {currentDest ? (
+                      <>
+                        <p className="text-[9pt] font-bold leading-none mt-2 uppercase">{currentDest.jabatan}</p>
+                        <p className="text-[9pt] font-bold leading-none uppercase">{currentDest.instansi}</p>
+                        <div className="h-10"></div>
+                        <p className="text-[9pt] font-bold underline uppercase">{currentDest.name}</p>
+                        <p className="text-[8pt]">NIP. {currentDest.nip}</p>
+                      </>
+                    ) : (
+                      <span className="h-12 border-b border-black border-dashed mt-2"></span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -17,10 +17,6 @@ export interface Official {
   role: 'KEPALA' | 'PPTK' | 'BENDAHARA';
 }
 
-/**
- * Interface for officials at the destination office.
- * Used in DestinationOfficialManager component.
- */
 export interface DestinationOfficial {
   id: string;
   name: string;
@@ -101,12 +97,14 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
+  destinationOfficialIds?: string[];
 }
 
 export enum ViewMode {
   DASHBOARD = 'DASHBOARD',
   EMPLOYEE_LIST = 'EMPLOYEE_LIST',
   OFFICIAL_LIST = 'OFFICIAL_LIST',
+  DESTINATION_OFFICIALS = 'DESTINATION_OFFICIALS',
   TRAVEL_LIST = 'TRAVEL_LIST',
   ADD_TRAVEL = 'ADD_TRAVEL',
   MASTER_DATA = 'MASTER_DATA',

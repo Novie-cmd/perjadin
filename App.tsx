@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   ViewMode, Employee, TravelAssignment, PrintType, 
-  MasterCost, SubActivity, SKPDConfig, Official 
+  MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial 
 } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
 import { OfficialForm } from './components/OfficialForm';
@@ -12,6 +12,7 @@ import { MasterDataForm } from './components/MasterDataForm';
 import { SKPDForm } from './components/SKPDForm';
 import { ReportView } from './components/ReportView';
 import { DatabaseSetup } from './components/DatabaseSetup';
+import { DestinationOfficialManager } from './components/DestinationOfficialManager';
 import { 
   SPTTemplate, 
   SPPDFrontTemplate,
@@ -24,7 +25,7 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, Map,
-  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
+  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins, UserSearch
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [officials, setOfficials] = useState<Official[]>([]);
+  const [destinationOfficials, setDestinationOfficials] = useState<DestinationOfficial[]>([]);
   const [skpdConfig, setSkpdConfig] = useState<SKPDConfig>({
     provinsi: 'Provinsi Nusa Tenggara Barat',
     namaSkpd: OFFICE_NAME,
@@ -162,6 +164,7 @@ const App: React.FC = () => {
       const [
         { data: empData }, 
         { data: offData }, 
+        { data: destOffData },
         { data: skpdData, error: skpdErr }, 
         { data: costData }, 
         { data: subData }, 
@@ -169,6 +172,7 @@ const App: React.FC = () => {
       ] = await Promise.all([
         supabase.from('employees').select('*').order('name'),
         supabase.from('officials').select('*').order('name'),
+        supabase.from('destination_officials').select('*').order('name'),
         supabase.from('skpd_config').select('*').eq('id', 'main').maybeSingle(),
         supabase.from('master_costs').select('*').order('destination'),
         supabase.from('sub_activities').select('*').order('code'),
@@ -183,6 +187,7 @@ const App: React.FC = () => {
         representationDalam: e.representation_dalam 
       })));
       if (offData) setOfficials(offData);
+      if (destOffData) setDestinationOfficials(destOffData);
       if (skpdData) setSkpdConfig({ 
         provinsi: skpdData.provinsi, namaSkpd: skpdData.nama_skpd, 
         alamat: skpdData.alamat, lokasi: skpdData.lokasi, 
@@ -220,6 +225,7 @@ const App: React.FC = () => {
         signerId: a.signer_id, 
         pptkId: a.pptk_id, 
         bendaharaId: a.bendahara_id, 
+        destinationOfficialIds: a.destination_official_ids || [],
         signDate: a.sign_date, 
         signedAt: a.signed_at 
       })));
@@ -253,7 +259,8 @@ const App: React.FC = () => {
       sign_date: data.signDate, 
       pptk_id: data.pptkId, 
       signer_id: data.signerId, 
-      bendahara_id: data.bendaharaId
+      bendahara_id: data.bendaharaId,
+      destination_official_ids: data.destinationOfficialIds
     });
     
     if (error) {
@@ -299,7 +306,8 @@ const App: React.FC = () => {
       assignment: activeAssignment, 
       employees, 
       skpd: skpdConfig, 
-      officials 
+      officials,
+      destinationOfficials
     };
     return (
       <div className="bg-gray-100 min-h-screen">
@@ -317,7 +325,7 @@ const App: React.FC = () => {
         <div className="p-4 md:p-12 flex justify-center">
           {printType === PrintType.SPT && <SPTTemplate {...props} />}
           {printType === PrintType.SPPD_FRONT && <SPPDFrontTemplate {...props} />}
-          {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} destinationOfficials={[]} />}
+          {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} />}
           {printType === PrintType.LAMPIRAN_III && <LampiranIIITemplate {...props} />}
           {printType === PrintType.KUITANSI && <KuitansiTemplate {...props} />}
           {printType === PrintType.DAFTAR_PENERIMAAN && <DaftarPenerimaanTemplate {...props} />}
@@ -342,6 +350,7 @@ const App: React.FC = () => {
             { id: ViewMode.SKPD_CONFIG, label: 'Profil SKPD', icon: Building2 },
             { id: ViewMode.EMPLOYEE_LIST, label: 'Data Pegawai', icon: Users },
             { id: ViewMode.OFFICIAL_LIST, label: 'Pejabat Internal', icon: ShieldCheck },
+            { id: ViewMode.DESTINATION_OFFICIALS, label: 'Pejabat Tujuan', icon: UserSearch },
             { id: ViewMode.TRAVEL_LIST, label: 'Riwayat SPT', icon: Calendar },
             { id: ViewMode.MASTER_DATA, label: 'Data Master', icon: Database },
             { id: ViewMode.REPORT, label: 'Laporan', icon: BarChart3 },
@@ -513,12 +522,38 @@ const App: React.FC = () => {
           />
         )}
 
+        {viewMode === ViewMode.DESTINATION_OFFICIALS && (
+          <div className="bg-white p-6 rounded-3xl border shadow-sm animate-in fade-in duration-500">
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                   <UserSearch className="text-blue-600" size={24} /> Master Pejabat Tujuan
+                </h3>
+             </div>
+             <DestinationOfficialManager 
+                officials={destinationOfficials}
+                onSelect={() => {}}
+                onSave={async (o) => {
+                   if (supabase) {
+                      await supabase.from('destination_officials').upsert(o);
+                      await refreshData();
+                   }
+                }}
+                onDelete={async (id) => {
+                   if (supabase && confirm('Hapus pejabat tujuan ini?')) {
+                      await supabase.from('destination_official_ids').delete().eq('id', id);
+                      await refreshData();
+                   }
+                }}
+                onClose={() => setViewMode(ViewMode.DASHBOARD)}
+             />
+          </div>
+        )}
+
         {viewMode === ViewMode.EMPLOYEE_LIST && (
           <EmployeeForm 
             employees={employees} 
             onSave={async (e) => {
               if (supabase) {
-                // Fix: Access property names according to Employee interface (camelCase)
                 const { error } = await supabase.from('employees').upsert({
                   id: e.id, 
                   name: e.name, 
@@ -603,7 +638,7 @@ const App: React.FC = () => {
             masterCosts={masterCosts} 
             subActivities={subActivities} 
             officials={officials} 
-            destinationOfficials={[]} 
+            destinationOfficials={destinationOfficials} 
             initialData={editingAssignment || undefined} 
             onSave={handleSaveAssignment} 
             onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} 

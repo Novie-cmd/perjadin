@@ -25,7 +25,7 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, Map,
-  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins, UserSearch
+  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins, Settings2
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -65,6 +65,7 @@ const App: React.FC = () => {
   const [activeAssignment, setActiveAssignment] = useState<TravelAssignment | null>(null);
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
+  const [showDestManager, setShowDestManager] = useState(false);
 
   const financialStats = useMemo(() => {
     const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
@@ -350,7 +351,6 @@ const App: React.FC = () => {
             { id: ViewMode.SKPD_CONFIG, label: 'Profil SKPD', icon: Building2 },
             { id: ViewMode.EMPLOYEE_LIST, label: 'Data Pegawai', icon: Users },
             { id: ViewMode.OFFICIAL_LIST, label: 'Pejabat Internal', icon: ShieldCheck },
-            { id: ViewMode.DESTINATION_OFFICIALS, label: 'Pejabat Tujuan', icon: UserSearch },
             { id: ViewMode.TRAVEL_LIST, label: 'Riwayat SPT', icon: Calendar },
             { id: ViewMode.MASTER_DATA, label: 'Data Master', icon: Database },
             { id: ViewMode.REPORT, label: 'Laporan', icon: BarChart3 },
@@ -522,33 +522,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {viewMode === ViewMode.DESTINATION_OFFICIALS && (
-          <div className="bg-white p-6 rounded-3xl border shadow-sm animate-in fade-in duration-500">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                   <UserSearch className="text-blue-600" size={24} /> Master Pejabat Tujuan
-                </h3>
-             </div>
-             <DestinationOfficialManager 
-                officials={destinationOfficials}
-                onSelect={() => {}}
-                onSave={async (o) => {
-                   if (supabase) {
-                      await supabase.from('destination_officials').upsert(o);
-                      await refreshData();
-                   }
-                }}
-                onDelete={async (id) => {
-                   if (supabase && confirm('Hapus pejabat tujuan ini?')) {
-                      await supabase.from('destination_official_ids').delete().eq('id', id);
-                      await refreshData();
-                   }
-                }}
-                onClose={() => setViewMode(ViewMode.DASHBOARD)}
-             />
-          </div>
-        )}
-
         {viewMode === ViewMode.EMPLOYEE_LIST && (
           <EmployeeForm 
             employees={employees} 
@@ -717,6 +690,12 @@ const App: React.FC = () => {
                  <Printer size={20} className="text-blue-600" />
                  <h3 className="font-black text-slate-800 text-xs uppercase tracking-tight">Daftar SPT Siap Cetak</h3>
                </div>
+               <button 
+                 onClick={() => setShowDestManager(true)} 
+                 className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300"
+               >
+                 <Settings2 size={14}/> Kelola Pejabat Tujuan
+               </button>
              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
@@ -773,6 +752,26 @@ const App: React.FC = () => {
                </table>
              </div>
            </div>
+        )}
+
+        {showDestManager && (
+          <DestinationOfficialManager 
+            officials={destinationOfficials} 
+            onSelect={() => setShowDestManager(false)} 
+            onClose={() => setShowDestManager(false)} 
+            onSave={async (off) => {
+              if(supabase) {
+                await supabase.from('destination_officials').upsert(off);
+                await refreshData();
+              }
+            }} 
+            onDelete={async (id) => {
+              if(supabase) {
+                await supabase.from('destination_officials').delete().eq('id', id);
+                await refreshData();
+              }
+            }} 
+          />
         )}
       </main>
     </div>

@@ -457,7 +457,17 @@ export const TravelAssignmentForm: React.FC<Props> = ({
                       <span className="font-black text-white bg-slate-400 w-5 h-5 flex items-center justify-center rounded-full text-[10px]">{idx + 1}</span>
                       <div className="font-black text-slate-700 uppercase text-xs tracking-tight">{emp?.name}</div>
                     </div>
-                    <div className="text-xs font-black text-blue-700 px-3 py-1 bg-blue-100 rounded-full border border-blue-200">Rp {formatCurrency(totalRow)}</div>
+                    <div className="flex items-center gap-3">
+                       <div className="text-xs font-black text-blue-700 px-3 py-1 bg-blue-100 rounded-full border border-blue-200">Rp {formatCurrency(totalRow)}</div>
+                       <button 
+                         type="button"
+                         onClick={() => handleToggleEmployee(cost.employeeId)}
+                         className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                         title="Hapus Pegawai dari Daftar"
+                       >
+                         <Trash2 size={16} />
+                       </button>
+                    </div>
                   </div>
                   <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">

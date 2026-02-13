@@ -69,9 +69,11 @@ const App: React.FC = () => {
 
   // Kalkulasi Keuangan Real-time
   const financialStats = useMemo(() => {
-    const realizationMap = assignments.reduce((acc, curr) => {
+    // Add explicit type Record<string, number> to reduce to fix arithmetic errors
+    const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
       const code = curr.subActivityCode;
-      const totalAssignmentCost = curr.costs.reduce((sum, cost) => {
+      // Add explicit number type to sum in nested reduce
+      const totalAssignmentCost = curr.costs.reduce<number>((sum, cost) => {
         const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
         const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
         const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
@@ -80,7 +82,7 @@ const App: React.FC = () => {
       }, 0);
       acc[code] = (acc[code] || 0) + totalAssignmentCost;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     const subSummary = subActivities
       .filter(s => s.anggaran > 0)
@@ -95,9 +97,10 @@ const App: React.FC = () => {
         };
       });
 
-    const totalAnggaran = subActivities.reduce((sum, s) => sum + s.anggaran, 0);
-    const totalSpd = subActivities.reduce((sum, s) => sum + (Number(s.spd) || 0), 0);
-    const totalRealisasi = Object.values(realizationMap).reduce((sum, v) => sum + v, 0);
+    // Add explicit types to improve arithmetic safety in global calculations
+    const totalAnggaran = subActivities.reduce<number>((sum, s) => sum + s.anggaran, 0);
+    const totalSpd = subActivities.reduce<number>((sum, s) => sum + (Number(s.spd) || 0), 0);
+    const totalRealisasi = Object.values(realizationMap).reduce<number>((sum, v) => sum + (v as number), 0);
 
     return {
       subSummary,
@@ -112,10 +115,11 @@ const App: React.FC = () => {
   }, [subActivities, assignments]);
 
   const chartData = useMemo(() => {
-    const typeCounts = assignments.reduce((acc, curr) => {
+    // Explicitly type the accumulator for typeCounts
+    const typeCounts = assignments.reduce<Record<string, number>>((acc, curr) => {
       acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     const pieData = [
       { name: 'Dalam Daerah', value: typeCounts['DALAM_DAERAH'] || 0, color: '#4f46e5' },
@@ -255,12 +259,24 @@ const App: React.FC = () => {
     else await refreshData();
   };
 
+  const handleDeleteAssignment = async (id: string) => {
+    if (!supabase || !confirm('Apakah Anda yakin ingin menghapus data perjalanan ini?')) return;
+    setLoading(true);
+    const { error } = await supabase.from('assignments').delete().eq('id', id);
+    if (error) {
+      alert(`Gagal menghapus: ${error.message}`);
+      setLoading(false);
+    } else {
+      await refreshData();
+    }
+  };
+
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
   
   if (loading) return (
     <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center flex-col">
       <RefreshCw className="animate-spin text-blue-400 mb-4" size={48} />
-      <h2 className="font-black text-xl tracking-widest italic">MENGHUBUNGKAN...</h2>
+      <h2 className="font-black text-xl tracking-widest italic">MEMPROSES DATA...</h2>
     </div>
   );
 
@@ -424,32 +440,6 @@ const App: React.FC = () => {
                  </table>
                </div>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><PieChartIcon size={14} /> Komposisi SPT</h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <RePieChart>
-                    <Pie data={chartData.pieData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={70}>
-                      {chartData.pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                    </Pie>
-                    <Tooltip />
-                  </RePieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><Map size={14} /> Statistik Tujuan NTB</h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <ReBarChart layout="vertical" data={chartData.ntbDestStats}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} />
-                  </ReBarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </div>
         )}
 
@@ -461,13 +451,13 @@ const App: React.FC = () => {
               nama_skpd: cfg.namaSkpd,
               alamat: cfg.alamat,
               lokasi: cfg.lokasi,
-              kepala_nama: cfg.kepalaNama,
-              kepala_nip: cfg.kepalaNip,
-              kepala_jabatan: cfg.kepalaJabatan,
-              bendahara_nama: cfg.bendaharaNama,
-              bendahara_nip: cfg.bendaharaNip,
-              pptk_nama: cfg.pptkNama,
-              pptk_nip: cfg.pptkNip,
+              kepala_nama: cfg.kepala_nama,
+              kepala_nip: cfg.kepala_nip,
+              kepala_jabatan: cfg.kepala_jabatan,
+              bendahara_nama: cfg.bendahara_nama,
+              bendahara_nip: cfg.bendahara_nip,
+              pptk_nama: cfg.pptk_nama,
+              pptk_nip: cfg.pptk_nip,
               logo: cfg.logo
             });
             if (error) alert(error.message); else await refreshData();
@@ -515,11 +505,14 @@ const App: React.FC = () => {
                     <td className="px-6 py-5 text-right">
                       <div className="flex justify-end gap-2">
                         <button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
-                        <button onClick={async () => { if(supabase && confirm('Hapus?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                        <button onClick={() => handleDeleteAssignment(a.id)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {assignments.length === 0 && (
+                  <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada riwayat SPT.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -537,15 +530,20 @@ const App: React.FC = () => {
                 daily_allowance: c.dailyAllowance,
                 lodging: c.lodging,
                 transport_bbm: c.transportBbm,
-                sea_transport: c.seaTransport,
-                air_transport: c.airTransport,
+                sea_transport: c.sea_transport,
+                air_transport: c.air_transport,
                 taxi: c.taxi
               }); 
               await refreshData(); 
             } 
           }} 
-          onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} 
-          onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} 
+          onDeleteCost={async (d) => { 
+            if(supabase && confirm('Hapus data biaya untuk tujuan ini?')) { 
+              const { error } = await supabase.from('master_costs').delete().eq('destination', d); 
+              if (error) alert(error.message); else await refreshData();
+            } 
+          }} 
+          onClearCosts={async () => { if(supabase && confirm('Hapus semua data master biaya?')) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} 
           onSaveSub={async (s) => { 
             if(supabase) { 
               const { error } = await supabase.from('sub_activities').upsert({ 
@@ -564,8 +562,7 @@ const App: React.FC = () => {
             } 
           }} 
           onDeleteSub={async (c) => { 
-            if(supabase) { 
-              // Cek apakah digunakan di riwayat SPT
+            if(supabase && confirm('Apakah Anda yakin ingin menghapus sub kegiatan ini?')) { 
               const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1);
               if (data && data.length > 0) {
                 alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.');
@@ -637,16 +634,13 @@ const App: React.FC = () => {
                        </td>
                      </tr>
                    ))}
-                   {assignments.length === 0 && (
-                     <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>
-                   )}
                  </tbody>
                </table>
              </div>
            </div>
         )}
 
-        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} onDelete={async (id) => { if(supabase) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }} />}
+        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} onDelete={async (id) => { if(supabase && confirm('Hapus pejabat tujuan ini?')) { const { error } = await supabase.from('destination_officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
       </main>
     </div>
   );

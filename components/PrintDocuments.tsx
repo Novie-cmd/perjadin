@@ -345,7 +345,7 @@ export const SPPDBackTemplate: React.FC<{
       <div className="space-y-0 border-t border-black">
         {['II', 'III', 'IV'].map((id) => (
           <div key={id} className="grid grid-cols-2 border-b border-black">
-            <div className="border-r border-black p-2 min-h-[140px]">
+            <div className="border-r border-black p-2 min-h-[160px]">
               <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
                 <span className="font-bold">{id}.</span>
                 <span>Tiba di</span>
@@ -358,17 +358,20 @@ export const SPPDBackTemplate: React.FC<{
                 <span>{id === 'II' ? formatDateID(assignment.startDate) : ''}</span>
                 
                 <span></span>
-                <span>Kepala</span>
-                <span>:</span>
-                <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                <span className="align-top">Kepala</span>
+                <span className="align-top">:</span>
+                <div className="flex flex-col">
+                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
+                </div>
               </div>
-              <div className="mt-8 text-center">
+              <div className="mt-6 text-center">
                 <div className="h-10"></div>
                 <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
                 <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
               </div>
             </div>
-            <div className="p-2 min-h-[140px]">
+            <div className="p-2 min-h-[160px]">
               <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
                 <span>Berangkat dari</span>
                 <span>:</span>
@@ -382,11 +385,14 @@ export const SPPDBackTemplate: React.FC<{
                 <span>:</span>
                 <span>{id === 'II' ? formatDateID(assignment.endDate) : ''}</span>
                 
-                <span>Kepala</span>
-                <span>:</span>
-                <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                <span className="align-top">Kepala</span>
+                <span className="align-top">:</span>
+                <div className="flex flex-col">
+                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
+                </div>
               </div>
-              <div className="mt-8 text-center">
+              <div className="mt-6 text-center">
                 <div className="h-10"></div>
                 <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
                 <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>

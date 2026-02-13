@@ -110,25 +110,6 @@ const App: React.FC = () => {
     };
   }, [subActivities, assignments]);
 
-  const chartData = useMemo(() => {
-    const typeCounts = assignments.reduce((acc, curr) => {
-      acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const pieData = [
-      { name: 'Dalam Daerah', value: typeCounts['DALAM_DAERAH'] || 0, color: '#4f46e5' },
-      { name: 'Luar Daerah', value: typeCounts['LUAR_DAERAH'] || 0, color: '#10b981' }
-    ];
-
-    const ntbDestStats = LIST_KOTA_NTB.map(city => {
-      const count = assignments.filter(a => a.destination === city).length;
-      return { name: city, count };
-    }).sort((a, b) => b.count - a.count);
-
-    return { pieData, ntbDestStats };
-  }, [assignments]);
-
   useEffect(() => {
     const savedUrl = localStorage.getItem('SB_URL');
     const savedKey = localStorage.getItem('SB_KEY');
@@ -761,14 +742,16 @@ const App: React.FC = () => {
             onClose={() => setShowDestManager(false)} 
             onSave={async (off) => {
               if(supabase) {
-                await supabase.from('destination_officials').upsert(off);
-                await refreshData();
+                const { error } = await supabase.from('destination_officials').upsert(off);
+                if (error) alert(error.message);
+                else await refreshData();
               }
             }} 
             onDelete={async (id) => {
-              if(supabase) {
-                await supabase.from('destination_officials').delete().eq('id', id);
-                await refreshData();
+              if(supabase && confirm('Hapus pejabat tujuan ini?')) {
+                const { error } = await supabase.from('destination_officials').delete().eq('id', id);
+                if (error) alert(error.message);
+                else await refreshData();
               }
             }} 
           />

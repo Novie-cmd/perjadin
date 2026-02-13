@@ -25,7 +25,7 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
-  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
+  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -66,13 +66,12 @@ const App: React.FC = () => {
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
+  const [isTextOnly, setIsTextOnly] = useState(false); // Toggle for back-page overprinting
 
   // Kalkulasi Keuangan Real-time
   const financialStats = useMemo(() => {
-    // Add explicit type Record<string, number> to reduce to fix arithmetic errors
     const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
       const code = curr.subActivityCode;
-      // Add explicit number type to sum in nested reduce
       const totalAssignmentCost = curr.costs.reduce<number>((sum, cost) => {
         const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
         const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
@@ -97,7 +96,6 @@ const App: React.FC = () => {
         };
       });
 
-    // Add explicit types to improve arithmetic safety in global calculations
     const totalAnggaran = subActivities.reduce<number>((sum, s) => sum + s.anggaran, 0);
     const totalSpd = subActivities.reduce<number>((sum, s) => sum + (Number(s.spd) || 0), 0);
     const totalRealisasi = Object.values(realizationMap).reduce<number>((sum, v) => sum + (v as number), 0);
@@ -115,22 +113,18 @@ const App: React.FC = () => {
   }, [subActivities, assignments]);
 
   const chartData = useMemo(() => {
-    // Explicitly type the accumulator for typeCounts
     const typeCounts = assignments.reduce<Record<string, number>>((acc, curr) => {
       acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
       return acc;
     }, {});
-
     const pieData = [
       { name: 'Dalam Daerah', value: typeCounts['DALAM_DAERAH'] || 0, color: '#4f46e5' },
       { name: 'Luar Daerah', value: typeCounts['LUAR_DAERAH'] || 0, color: '#10b981' }
     ];
-
     const ntbDestStats = LIST_KOTA_NTB.map(city => {
       const count = assignments.filter(a => a.destination === city).length;
       return { name: city, count };
     }).sort((a, b) => b.count - a.count);
-
     return { pieData, ntbDestStats };
   }, [assignments]);
 
@@ -301,14 +295,34 @@ const App: React.FC = () => {
   );
 
   if (viewMode === ViewMode.PRINT_PREVIEW && activeAssignment) {
-    const props = { assignment: activeAssignment, employees, skpd: skpdConfig, officials, destinationOfficials };
+    const props = { 
+      assignment: activeAssignment, 
+      employees, 
+      skpd: skpdConfig, 
+      officials, 
+      destinationOfficials,
+      isTextOnly // Pass toggle state
+    };
     return (
       <div className="bg-gray-100 min-h-screen">
         <div className="no-print bg-white border-b p-4 sticky top-0 flex items-center justify-between z-50 shadow-sm">
           <button onClick={() => setViewMode(ViewMode.PRINT_MENU)} className="flex items-center gap-2 font-bold text-slate-600 hover:text-blue-600 transition"><ChevronLeft size={20} /> Kembali</button>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-black uppercase text-slate-400">Preview: {printType}</span>
-            <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-blue-700 transition"><Printer size={18} /> Cetak</button>
+          
+          <div className="flex items-center gap-8">
+            {printType === PrintType.SPPD_BACK && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border rounded-xl">
+                 <span className={`text-[10px] font-black uppercase transition-colors ${!isTextOnly ? 'text-blue-600' : 'text-slate-400'}`}>Cetak Penuh</span>
+                 <button onClick={() => setIsTextOnly(!isTextOnly)} className="text-blue-600">
+                    {isTextOnly ? <ToggleRight size={28} /> : <ToggleLeft size={28} className="text-slate-300" />}
+                 </button>
+                 <span className={`text-[10px] font-black uppercase transition-colors ${isTextOnly ? 'text-blue-600' : 'text-slate-400'}`}>Cetak Isian Pejabat Saja</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-black uppercase text-slate-400">Preview: {printType}</span>
+              <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-blue-700 transition"><Printer size={18} /> Cetak</button>
+            </div>
           </div>
         </div>
         <div className="p-4 md:p-12 flex justify-center">
@@ -445,7 +459,6 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
-            // Fix: Use camelCase properties as defined in SKPDConfig interface
             const { error } = await supabase.from('skpd_config').upsert({ 
               id: 'main', 
               provinsi: cfg.provinsi,
@@ -526,7 +539,6 @@ const App: React.FC = () => {
           subActivities={subActivities} 
           onSaveCost={async (c) => { 
             if(supabase) { 
-              // Fix: Use camelCase properties as defined in MasterCost interface
               await supabase.from('master_costs').upsert({ 
                 destination: c.destination,
                 daily_allowance: c.dailyAllowance,
@@ -623,7 +635,7 @@ const App: React.FC = () => {
                              { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
                              { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
                            ].map(btn => (
-                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); setIsTextOnly(false); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
                                btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : 
                                btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : 
                                btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : 

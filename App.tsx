@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   ViewMode, Employee, TravelAssignment, PrintType, 
-  MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial 
+  MasterCost, SubActivity, SKPDConfig, Official 
 } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
 import { OfficialForm } from './components/OfficialForm';
@@ -11,7 +11,6 @@ import { TravelAssignmentForm } from './components/TravelAssignmentForm';
 import { MasterDataForm } from './components/MasterDataForm';
 import { SKPDForm } from './components/SKPDForm';
 import { ReportView } from './components/ReportView';
-import { DestinationOfficialManager } from './components/DestinationOfficialManager';
 import { DatabaseSetup } from './components/DatabaseSetup';
 import { 
   SPTTemplate, 
@@ -24,7 +23,7 @@ import {
 import { 
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
-  BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
+  BarChart3, RefreshCw, LogOut, ShieldCheck, Map,
   PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
 } from 'lucide-react';
 import { 
@@ -43,7 +42,6 @@ const App: React.FC = () => {
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [officials, setOfficials] = useState<Official[]>([]);
-  const [destinationOfficials, setDestinationOfficials] = useState<DestinationOfficial[]>([]);
   const [skpdConfig, setSkpdConfig] = useState<SKPDConfig>({
     provinsi: 'Provinsi Nusa Tenggara Barat',
     namaSkpd: OFFICE_NAME,
@@ -65,7 +63,6 @@ const App: React.FC = () => {
   const [activeAssignment, setActiveAssignment] = useState<TravelAssignment | null>(null);
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
-  const [showDestManager, setShowDestManager] = useState(false);
 
   const financialStats = useMemo(() => {
     const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
@@ -165,7 +162,6 @@ const App: React.FC = () => {
       const [
         { data: empData }, 
         { data: offData }, 
-        { data: destOffData }, 
         { data: skpdData, error: skpdErr }, 
         { data: costData }, 
         { data: subData }, 
@@ -173,7 +169,6 @@ const App: React.FC = () => {
       ] = await Promise.all([
         supabase.from('employees').select('*').order('name'),
         supabase.from('officials').select('*').order('name'),
-        supabase.from('destination_officials').select('*').order('name'),
         supabase.from('skpd_config').select('*').eq('id', 'main').maybeSingle(),
         supabase.from('master_costs').select('*').order('destination'),
         supabase.from('sub_activities').select('*').order('code'),
@@ -188,7 +183,6 @@ const App: React.FC = () => {
         representationDalam: e.representation_dalam 
       })));
       if (offData) setOfficials(offData);
-      if (destOffData) setDestinationOfficials(destOffData);
       if (skpdData) setSkpdConfig({ 
         provinsi: skpdData.provinsi, namaSkpd: skpdData.nama_skpd, 
         alamat: skpdData.alamat, lokasi: skpdData.lokasi, 
@@ -226,7 +220,6 @@ const App: React.FC = () => {
         signerId: a.signer_id, 
         pptkId: a.pptk_id, 
         bendaharaId: a.bendahara_id, 
-        destinationOfficialIds: a.destination_official_ids || [], 
         signDate: a.sign_date, 
         signedAt: a.signed_at 
       })));
@@ -260,8 +253,7 @@ const App: React.FC = () => {
       sign_date: data.signDate, 
       pptk_id: data.pptkId, 
       signer_id: data.signerId, 
-      bendahara_id: data.bendaharaId, 
-      destination_official_ids: data.destinationOfficialIds
+      bendahara_id: data.bendaharaId
     });
     
     if (error) {
@@ -307,8 +299,7 @@ const App: React.FC = () => {
       assignment: activeAssignment, 
       employees, 
       skpd: skpdConfig, 
-      officials, 
-      destinationOfficials 
+      officials 
     };
     return (
       <div className="bg-gray-100 min-h-screen">
@@ -326,7 +317,7 @@ const App: React.FC = () => {
         <div className="p-4 md:p-12 flex justify-center">
           {printType === PrintType.SPT && <SPTTemplate {...props} />}
           {printType === PrintType.SPPD_FRONT && <SPPDFrontTemplate {...props} />}
-          {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} />}
+          {printType === PrintType.SPPD_BACK && <SPPDBackTemplate {...props} destinationOfficials={[]} />}
           {printType === PrintType.LAMPIRAN_III && <LampiranIIITemplate {...props} />}
           {printType === PrintType.KUITANSI && <KuitansiTemplate {...props} />}
           {printType === PrintType.DAFTAR_PENERIMAAN && <DaftarPenerimaanTemplate {...props} />}
@@ -402,6 +393,7 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.DASHBOARD && (
           <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <Landmark className="text-blue-600 mb-3" size={20} />
@@ -430,6 +422,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* Sub Activity Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                <div className="p-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
                  <BarChart3 className="text-blue-600" size={18} />
@@ -466,36 +459,6 @@ const App: React.FC = () => {
                    </tbody>
                  </table>
                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2">
-                  <PieChartIcon size={14} /> Komposisi SPT
-                </h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <RePieChart>
-                    <Pie data={chartData.pieData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={70}>
-                      {chartData.pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                    </Pie>
-                    <Tooltip />
-                  </RePieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2">
-                  <Map size={14} /> Statistik Tujuan NTB
-                </h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <ReBarChart layout="vertical" data={chartData.ntbDestStats}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} />
-                  </ReBarChart>
-                </ResponsiveContainer>
-              </div>
             </div>
           </div>
         )}
@@ -555,6 +518,7 @@ const App: React.FC = () => {
             employees={employees} 
             onSave={async (e) => {
               if (supabase) {
+                // Fix: Access property names according to Employee interface (camelCase)
                 const { error } = await supabase.from('employees').upsert({
                   id: e.id, 
                   name: e.name, 
@@ -639,7 +603,7 @@ const App: React.FC = () => {
             masterCosts={masterCosts} 
             subActivities={subActivities} 
             officials={officials} 
-            destinationOfficials={destinationOfficials} 
+            destinationOfficials={[]} 
             initialData={editingAssignment || undefined} 
             onSave={handleSaveAssignment} 
             onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} 
@@ -695,11 +659,6 @@ const App: React.FC = () => {
             }} 
             onDeleteSub={async (c) => {
               if(supabase && confirm('Hapus sub kegiatan ini?')) {
-                const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1);
-                if (data && data.length > 0) {
-                  alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.');
-                  return;
-                }
                 const { error } = await supabase.from('sub_activities').delete().eq('code', c);
                 if (error) alert(`Gagal Hapus: ${error.message}`);
                 else await refreshData();
@@ -723,12 +682,6 @@ const App: React.FC = () => {
                  <Printer size={20} className="text-blue-600" />
                  <h3 className="font-black text-slate-800 text-xs uppercase tracking-tight">Daftar SPT Siap Cetak</h3>
                </div>
-               <button 
-                 onClick={() => setShowDestManager(true)} 
-                 className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300"
-               >
-                 <Settings2 size={14}/> Kelola Pejabat Tujuan
-               </button>
              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
@@ -785,16 +738,6 @@ const App: React.FC = () => {
                </table>
              </div>
            </div>
-        )}
-
-        {showDestManager && (
-          <DestinationOfficialManager 
-            officials={destinationOfficials} 
-            onSelect={() => setShowDestManager(false)} 
-            onClose={() => setShowDestManager(false)} 
-            onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} 
-            onDelete={async (id) => { if(supabase) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }} 
-          />
         )}
       </main>
     </div>

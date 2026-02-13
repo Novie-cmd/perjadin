@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official, DestinationOfficial } from '../types';
+import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck, Settings2, RotateCcw } from 'lucide-react';
+import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
   masterCosts: MasterCost[];
   subActivities: SubActivity[];
   officials: Official[];
-  destinationOfficials: DestinationOfficial[];
+  destinationOfficials: any[];
   initialData?: TravelAssignment;
   onSave: (data: TravelAssignment) => void;
   onCancel: () => void;
@@ -21,7 +21,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
   masterCosts, 
   subActivities, 
   officials, 
-  destinationOfficials,
   initialData, 
   onSave, 
   onCancel
@@ -49,8 +48,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || '',
-      destinationOfficialIds: ['', '', '']
+      bendaharaId: defaultBendahara?.id || ''
     };
   });
 
@@ -152,12 +150,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     }));
   };
 
-  const handleClearDestinationOfficials = () => {
-    if (confirm('Bersihkan semua pilihan pejabat pengesah tujuan (Blok II, III, IV)?')) {
-      setFormData(prev => ({ ...prev, destinationOfficialIds: ['', '', ''] }));
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.selectedEmployeeIds?.length) { alert("Pilih minimal satu pegawai"); return; }
@@ -184,36 +176,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
           <div><label className="block text-sm font-medium text-gray-700 font-bold">Tanggal Berangkat</label><input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 font-bold text-slate-700" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} /></div>
           <div><label className="block text-sm font-medium text-gray-700 font-bold">Tanggal Kembali</label><input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 font-bold text-slate-700" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} /></div>
           <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 font-bold">Lama Perjalanan (Hari)</label><div className="flex items-center gap-3 mt-1"><input type="text" readOnly className="w-32 p-2.5 border border-slate-200 rounded-lg bg-slate-50 font-black text-blue-600" value={`${formData.durationDays || 0} Hari`} /><span className="text-[10px] text-slate-400 font-bold uppercase italic">* Dihitung otomatis berdasarkan tanggal</span></div></div>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800 uppercase tracking-tight"><MapPin className="text-red-600" size={20} /> Pejabat Pengesah Tujuan (Blok II, III, IV)</h3>
-          {(formData.destinationOfficialIds?.some(id => id !== '')) && (
-            <button 
-              type="button"
-              onClick={handleClearDestinationOfficials}
-              className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition shadow-sm"
-            >
-              <RotateCcw size={14} /> Bersihkan Pengesah
-            </button>
-          )}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          {['II', 'III', 'IV'].map((blok, idx) => (
-            <div key={blok} className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase">Pejabat Pengesah Blok {blok}</label>
-              <select className="w-full p-2.5 border border-slate-200 rounded-lg bg-white font-bold text-slate-700" value={(formData.destinationOfficialIds || [])[idx] || ''} onChange={e => {
-                const currentIds = [...(formData.destinationOfficialIds || ['', '', ''])];
-                currentIds[idx] = e.target.value;
-                setFormData({...formData, destinationOfficialIds: currentIds});
-              }}>
-                <option value="">-- Pilih Pejabat --</option>
-                {destinationOfficials.map(off => (<option key={off.id} value={off.id}>{off.name}</option>))}
-              </select>
-            </div>
-          ))}
         </div>
       </div>
 

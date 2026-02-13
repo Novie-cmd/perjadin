@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TravelAssignment, Employee, PrintType, SKPDConfig, Official, DestinationOfficial } from '../types';
+import { TravelAssignment, Employee, PrintType, SKPDConfig, Official } from '../types';
 import { formatCurrency, numberToWords, formatDateID, formatNumber } from '../utils';
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
   employees: Employee[];
   skpd: SKPDConfig;
   officials: Official[];
-  destinationOfficials: DestinationOfficial[];
+  destinationOfficials?: any[];
 }
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
@@ -252,18 +252,10 @@ export const SPPDBackTemplate: React.FC<{
   assignment: TravelAssignment; 
   skpd: SKPDConfig; 
   officials: Official[];
-  destinationOfficials: DestinationOfficial[];
-}> = ({ assignment, skpd, officials, destinationOfficials }) => {
+  destinationOfficials: any[];
+}> = ({ assignment, skpd, officials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
   
-  // Ambil ID pejabat untuk masing-masing blok
-  const destIds = assignment.destinationOfficialIds || [];
-
-  const getDestOfficial = (index: number) => {
-    const id = destIds[index];
-    return destinationOfficials.find(o => o.id === id);
-  };
-
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] relative leading-tight">
       <div className="flex justify-end">
@@ -283,13 +275,10 @@ export const SPPDBackTemplate: React.FC<{
 
       <div className="space-y-0 border-t border-black">
         {['II', 'III', 'IV'].map((id, idx) => {
-          const destOff = getDestOfficial(idx);
-          const isFilled = !!destOff;
-
           return (
             <div key={id} className="grid grid-cols-2 border-b border-black">
               {/* KOLOM TIBA */}
-              <div className="border-r border-black p-2 min-h-[180px]">
+              <div className="border-r border-black p-2 min-h-[160px]">
                 <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
                   <span className="font-bold">{id}.</span>
                   <span>Tiba di</span>
@@ -305,21 +294,13 @@ export const SPPDBackTemplate: React.FC<{
                   <span className="align-top">Kepala</span>
                   <span className="align-top">:</span>
                   <div className="flex flex-col">
-                    <span className="uppercase">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                    <span className="h-12 border-b border-black border-dashed mt-2"></span>
                   </div>
                 </div>
-                {isFilled && (
-                  <div className="mt-8 text-center pl-10">
-                    <div className="h-12"></div>
-                    <p className="font-bold underline uppercase">{destOff.name}</p>
-                    <p>NIP. {destOff.nip}</p>
-                  </div>
-                )}
               </div>
 
               {/* KOLOM BERANGKAT */}
-              <div className="p-2 min-h-[180px]">
+              <div className="p-2 min-h-[160px]">
                 <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
                   <span>Berangkat dari</span>
                   <span>:</span>
@@ -336,17 +317,9 @@ export const SPPDBackTemplate: React.FC<{
                   <span className="align-top">Kepala</span>
                   <span className="align-top">:</span>
                   <div className="flex flex-col">
-                    <span className="uppercase">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                    <span className="h-12 border-b border-black border-dashed mt-2"></span>
                   </div>
                 </div>
-                {isFilled && (
-                  <div className="mt-8 text-center pl-10">
-                    <div className="h-12"></div>
-                    <p className="font-bold underline uppercase">{destOff.name}</p>
-                    <p>NIP. {destOff.nip}</p>
-                  </div>
-                )}
               </div>
             </div>
           );

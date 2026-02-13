@@ -9,20 +9,24 @@ export interface Employee {
   representationDalam?: number;
 }
 
-export interface DestinationOfficial {
-  id: string;
-  name: string;
-  nip: string;
-  jabatan: string;
-  instansi: string; // Dinas/Org/Kab
-}
-
 export interface Official {
   id: string;
   name: string;
   nip: string;
   jabatan: string;
   role: 'KEPALA' | 'PPTK' | 'BENDAHARA';
+}
+
+/**
+ * Interface for officials at the destination office.
+ * Used in DestinationOfficialManager component.
+ */
+export interface DestinationOfficial {
+  id: string;
+  name: string;
+  nip: string;
+  jabatan: string;
+  instansi: string;
 }
 
 export interface SKPDConfig {
@@ -32,7 +36,7 @@ export interface SKPDConfig {
   lokasi: string;
   kepalaNama: string;
   kepalaNip: string;
-  kepalaJabatan: string; // Properti baru
+  kepalaJabatan: string; 
   bendaharaNama: string;
   bendaharaNip: string;
   pptkNama: string;
@@ -85,7 +89,7 @@ export interface TravelAssignment {
   purpose: string;
   origin: string;
   travelType: TravelType;
-  transportation: string; // Added transportation field
+  transportation: string;
   destination: string;
   startDate: string;
   endDate: string;
@@ -93,12 +97,10 @@ export interface TravelAssignment {
   selectedEmployeeIds: string[];
   costs: TravelCost[];
   signedAt: string;
-  // Fix: Changed from sign_date to signDate to fix 'property does not exist' errors across components
   signDate: string;
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialIds?: string[]; // Diubah ke array untuk mendukung Blok II, III, IV
 }
 
 export enum ViewMode {

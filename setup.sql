@@ -1,6 +1,6 @@
 
--- Tambahkan kolom baru ke tabel assignments
+-- Jalankan ini di SQL Editor Supabase Anda
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS destination_official_ids TEXT[];
 
--- Update policy agar kolom baru bisa diakses (opsional karena policy ALL biasanya mencakup kolom baru)
+-- Refresh schema cache agar kolom terdeteksi oleh API
 NOTIFY pgrst, 'reload schema';

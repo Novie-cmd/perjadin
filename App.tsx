@@ -68,8 +68,8 @@ const App: React.FC = () => {
   const [showDestManager, setShowDestManager] = useState(false);
 
   const financialStats = useMemo(() => {
-    // Fix: Changed reduce to use type assertion on initial value to avoid "untyped function call" and "unknown" errors
-    const realizationMap = assignments.reduce((acc, curr) => {
+    // Fix: Explicitly type the accumulator as Record<string, number> to prevent 'unknown' operator errors
+    const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
       const code = curr.subActivityCode;
       const totalAssignmentCost = curr.costs.reduce((sum, cost) => {
         const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
@@ -77,15 +77,17 @@ const App: React.FC = () => {
         const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
         const repres = (cost.representation || 0) * (cost.representationDays || 0);
         return sum + daily + lodging + transport + repres;
-      }, 0 as number);
+      }, 0);
+      // Fix: acc[code] is now inferred as number | undefined
       acc[code] = (acc[code] || 0) + totalAssignmentCost;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     const subSummary = subActivities
       .filter(s => s.anggaran > 0)
       .map(s => {
-        const realization = realizationMap[s.code] || 0;
+        // Fix: Ensure realization is treated as a number to avoid arithmetic errors in later subtractions
+        const realization = Number(realizationMap[s.code] || 0);
         const spdValue = Number(s.spd) || 0;
         return {
           ...s,
@@ -95,7 +97,6 @@ const App: React.FC = () => {
         };
       });
 
-    // Fix: Replaced generic reduce calls with typed initial values and assertions to handle strict type checking
     const totalAnggaran = subActivities.reduce((sum, s) => sum + s.anggaran, 0 as number);
     const totalSpd = subActivities.reduce((sum, s) => sum + (Number(s.spd) || 0), 0 as number);
     const totalRealisasi = Object.values(realizationMap).reduce((sum, v) => sum + (v as number), 0 as number);
@@ -224,11 +225,11 @@ const App: React.FC = () => {
         subActivityCode: a.sub_activity_code, 
         startDate: a.start_date, 
         endDate: a.end_date, 
-        duration_days: a.duration_days, 
+        durationDays: a.duration_days, 
         signerId: a.signer_id, 
         pptkId: a.pptk_id, 
         bendaharaId: a.bendahara_id, 
-        destinationOfficialIds: a.destination_official_ids || [], // Map array
+        destinationOfficialIds: a.destination_official_ids || [], 
         signDate: a.sign_date, 
         signedAt: a.signed_at 
       })));
@@ -245,13 +246,24 @@ const App: React.FC = () => {
   const handleSaveAssignment = async (data: TravelAssignment) => {
     if (!supabase) return;
     const { error } = await supabase.from('assignments').upsert({
-      id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
-      purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
-      transportation: data.transportation, destination: data.destination, 
-      start_date: data.startDate, end_date: data.endDate, duration_days: data.durationDays, 
-      selected_employee_ids: data.selectedEmployeeIds, costs: data.costs, 
-      signed_at: data.signedAt, sign_date: data.signDate, pptk_id: data.pptkId, 
-      signer_id: data.signerId, bendahara_id: data.bendaharaId, 
+      id: data.id, 
+      assignment_number: data.assignmentNumber, 
+      sub_activity_code: data.subActivityCode, 
+      purpose: data.purpose, 
+      origin: data.origin, 
+      travel_type: data.travelType, 
+      transportation: data.transportation, 
+      destination: data.destination, 
+      start_date: data.startDate, 
+      end_date: data.endDate, 
+      duration_days: data.durationDays, 
+      selected_employee_ids: data.selected_employee_ids, 
+      costs: data.costs, 
+      signed_at: data.signedAt, 
+      sign_date: data.signDate, 
+      pptk_id: data.pptkId, 
+      signer_id: data.signerId, 
+      bendahara_id: data.bendaharaId, 
       destination_official_ids: data.destinationOfficialIds
     });
     if (error) alert(`Gagal menyimpan: ${error.message}`);
@@ -260,7 +272,9 @@ const App: React.FC = () => {
 
   const handleUpdateDestinationOfficials = async (assignmentId: string, officialIds: string[]) => {
     if (!supabase) return;
-    const { error } = await supabase.from('assignments').update({ destination_official_ids: officialIds }).eq('id', assignmentId);
+    const { error } = await supabase.from('assignments').update({ 
+      destination_official_ids: officialIds 
+    }).eq('id', assignmentId);
     if (error) alert(`Gagal update: ${error.message}`);
     else await refreshData();
   };
@@ -345,7 +359,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepala_nama, kepala_nip: cfg.kepala_nip, kepala_jabatan: cfg.kepala_jabatan, bendahara_nama: cfg.bendahara_nama, bendahara_nip: cfg.bendahara_nip, pptk_nama: cfg.pptk_nama, pptk_nip: cfg.pptk_nip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
+        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepala_jabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
 
@@ -359,7 +373,7 @@ const App: React.FC = () => {
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
-        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging, transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data && data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
+        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.daily_allowance, lodging: c.lodging, transport_bbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data && data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
 
         {viewMode === ViewMode.PRINT_MENU && (

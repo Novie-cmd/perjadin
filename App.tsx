@@ -273,19 +273,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateDestinationOfficials = async (assignmentId: string, officialIds: string[]) => {
-    if (!supabase) return;
-    const { error } = await supabase.from('assignments').update({ 
-      destination_official_ids: officialIds 
-    }).eq('id', assignmentId);
-    
-    if (error) {
-      alert(`Gagal update: ${error.message}`);
-    } else {
-      await refreshData();
-    }
-  };
-
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
   
   if (loading) return (
@@ -745,11 +732,11 @@ const App: React.FC = () => {
              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100">
+                 <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b border-slate-100">
                    <tr>
-                     <th className="px-6 py-4">Nomor & Tujuan</th>
-                     <th className="px-6 py-4">Pejabat Pengesah (Blok II, III, IV)</th>
-                     <th className="px-6 py-4 text-right">Opsi Cetak</th>
+                     <th className="px-6 py-5">Nomor & Tujuan</th>
+                     <th className="px-6 py-5">Maksud Perjalanan</th>
+                     <th className="px-6 py-5 text-right">Opsi Cetak</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -759,25 +746,9 @@ const App: React.FC = () => {
                          <div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div>
                          <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
                        </td>
-                       <td className="px-6 py-5 space-y-2">
-                         {['II', 'III', 'IV'].map((blok, idx) => (
-                           <div key={blok} className="flex items-center gap-2">
-                             <span className="text-[9px] font-black text-slate-400 w-4">{blok}</span>
-                             <select 
-                               className="w-full max-w-[200px] p-1.5 border border-slate-200 rounded-lg text-[9px] font-bold bg-white text-slate-700 shadow-sm" 
-                               value={(item.destinationOfficialIds || [])[idx] || ''} 
-                               onChange={(e) => {
-                                 const currentIds = [...(item.destinationOfficialIds || [])];
-                                 while(currentIds.length <= idx) currentIds.push('');
-                                 currentIds[idx] = e.target.value;
-                                 handleUpdateDestinationOfficials(item.id, currentIds);
-                               }}
-                             >
-                               <option value="">-- Kosong --</option>
-                               {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                             </select>
-                           </div>
-                         ))}
+                       <td className="px-6 py-5">
+                         <div className="text-[11px] text-slate-600 font-medium line-clamp-1 italic max-w-md">{item.purpose}</div>
+                         <div className="text-[9px] text-slate-400 uppercase font-black mt-1">{item.startDate} s.d {item.endDate}</div>
                        </td>
                        <td className="px-6 py-5 text-right">
                          <div className="flex gap-2 flex-wrap justify-end">

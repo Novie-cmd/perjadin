@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official, DestinationOfficial } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck, Settings2 } from 'lucide-react';
+import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck, Settings2, RotateCcw } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -152,6 +152,12 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     }));
   };
 
+  const handleClearDestinationOfficials = () => {
+    if (confirm('Bersihkan semua pilihan pejabat pengesah tujuan (Blok II, III, IV)?')) {
+      setFormData(prev => ({ ...prev, destinationOfficialIds: ['', '', ''] }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.selectedEmployeeIds?.length) { alert("Pilih minimal satu pegawai"); return; }
@@ -182,7 +188,18 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight"><MapPin className="text-red-600" size={20} /> Pejabat Pengesah Tujuan (Blok II, III, IV)</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800 uppercase tracking-tight"><MapPin className="text-red-600" size={20} /> Pejabat Pengesah Tujuan (Blok II, III, IV)</h3>
+          {(formData.destinationOfficialIds?.some(id => id !== '')) && (
+            <button 
+              type="button"
+              onClick={handleClearDestinationOfficials}
+              className="text-red-500 hover:text-red-700 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition shadow-sm"
+            >
+              <RotateCcw size={14} /> Bersihkan Pengesah
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
           {['II', 'III', 'IV'].map((blok, idx) => (
             <div key={blok} className="space-y-1">

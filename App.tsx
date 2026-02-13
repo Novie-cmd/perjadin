@@ -445,19 +445,20 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
+            // Fix: Use camelCase properties as defined in SKPDConfig interface
             const { error } = await supabase.from('skpd_config').upsert({ 
               id: 'main', 
               provinsi: cfg.provinsi,
               nama_skpd: cfg.namaSkpd,
               alamat: cfg.alamat,
               lokasi: cfg.lokasi,
-              kepala_nama: cfg.kepala_nama,
-              kepala_nip: cfg.kepala_nip,
-              kepala_jabatan: cfg.kepala_jabatan,
-              bendahara_nama: cfg.bendahara_nama,
-              bendahara_nip: cfg.bendahara_nip,
-              pptk_nama: cfg.pptk_nama,
-              pptk_nip: cfg.pptk_nip,
+              kepala_nama: cfg.kepalaNama,
+              kepala_nip: cfg.kepalaNip,
+              kepala_jabatan: cfg.kepalaJabatan,
+              bendahara_nama: cfg.bendaharaNama,
+              bendahara_nip: cfg.bendaharaNip,
+              pptk_nama: cfg.pptkNama,
+              pptk_nip: cfg.pptkNip,
               logo: cfg.logo
             });
             if (error) alert(error.message); else await refreshData();
@@ -525,13 +526,14 @@ const App: React.FC = () => {
           subActivities={subActivities} 
           onSaveCost={async (c) => { 
             if(supabase) { 
+              // Fix: Use camelCase properties as defined in MasterCost interface
               await supabase.from('master_costs').upsert({ 
                 destination: c.destination,
                 daily_allowance: c.dailyAllowance,
                 lodging: c.lodging,
                 transport_bbm: c.transportBbm,
-                sea_transport: c.sea_transport,
-                air_transport: c.air_transport,
+                sea_transport: c.seaTransport,
+                air_transport: c.airTransport,
                 taxi: c.taxi
               }); 
               await refreshData(); 

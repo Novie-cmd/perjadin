@@ -345,7 +345,8 @@ export const SPPDBackTemplate: React.FC<{
       <div className="space-y-0 border-t border-black">
         {['II', 'III', 'IV'].map((id) => (
           <div key={id} className="grid grid-cols-2 border-b border-black">
-            <div className="border-r border-black p-2 min-h-[160px]">
+            {/* Sisi Kiri: Tiba di */}
+            <div className="border-r border-black p-2 min-h-[200px] flex flex-col">
               <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
                 <span className="font-bold">{id}.</span>
                 <span>Tiba di</span>
@@ -361,17 +362,19 @@ export const SPPDBackTemplate: React.FC<{
                 <span className="align-top">Kepala</span>
                 <span className="align-top">:</span>
                 <div className="flex flex-col">
-                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
-                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
+                  <span className="leading-tight">{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="text-[10pt] uppercase font-normal leading-tight mt-0.5">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
                 </div>
               </div>
-              <div className="mt-6 text-center">
-                <div className="h-10"></div>
+              
+              <div className="mt-auto text-center pb-2">
                 <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
-                <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
+                <p className="text-[10pt]">{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
               </div>
             </div>
-            <div className="p-2 min-h-[160px]">
+
+            {/* Sisi Kanan: Berangkat dari */}
+            <div className="p-2 min-h-[200px] flex flex-col">
               <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
                 <span>Berangkat dari</span>
                 <span>:</span>
@@ -388,14 +391,14 @@ export const SPPDBackTemplate: React.FC<{
                 <span className="align-top">Kepala</span>
                 <span className="align-top">:</span>
                 <div className="flex flex-col">
-                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
-                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
+                  <span className="leading-tight">{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="text-[10pt] uppercase font-normal leading-tight mt-0.5">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
                 </div>
               </div>
-              <div className="mt-6 text-center">
-                <div className="h-10"></div>
+              
+              <div className="mt-auto text-center pb-2">
                 <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
-                <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
+                <p className="text-[10pt]">{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
               </div>
             </div>
           </div>

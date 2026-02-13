@@ -9,20 +9,20 @@ export interface Employee {
   representationDalam?: number;
 }
 
+export interface DestinationOfficial {
+  id: string;
+  name: string;
+  nip: string;
+  jabatan: string;
+  instansi: string; // Dinas/Org/Kab
+}
+
 export interface Official {
   id: string;
   name: string;
   nip: string;
   jabatan: string;
   role: 'KEPALA' | 'PPTK' | 'BENDAHARA';
-}
-
-export interface DestinationOfficial {
-  id: string;
-  name: string;
-  nip: string;
-  jabatan: string;
-  instansi: string;
 }
 
 export interface SKPDConfig {
@@ -32,7 +32,7 @@ export interface SKPDConfig {
   lokasi: string;
   kepalaNama: string;
   kepalaNip: string;
-  kepalaJabatan: string; 
+  kepalaJabatan: string; // Properti baru
   bendaharaNama: string;
   bendaharaNip: string;
   pptkNama: string;
@@ -85,7 +85,7 @@ export interface TravelAssignment {
   purpose: string;
   origin: string;
   travelType: TravelType;
-  transportation: string;
+  transportation: string; // Added transportation field
   destination: string;
   startDate: string;
   endDate: string;
@@ -93,18 +93,18 @@ export interface TravelAssignment {
   selectedEmployeeIds: string[];
   costs: TravelCost[];
   signedAt: string;
+  // Fix: Changed from sign_date to signDate to fix 'property does not exist' errors across components
   signDate: string;
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialIds?: string[];
+  destinationOfficialId?: string; // Reference to Pejabat Tujuan
 }
 
 export enum ViewMode {
   DASHBOARD = 'DASHBOARD',
   EMPLOYEE_LIST = 'EMPLOYEE_LIST',
   OFFICIAL_LIST = 'OFFICIAL_LIST',
-  DESTINATION_OFFICIALS = 'DESTINATION_OFFICIALS',
   TRAVEL_LIST = 'TRAVEL_LIST',
   ADD_TRAVEL = 'ADD_TRAVEL',
   MASTER_DATA = 'MASTER_DATA',

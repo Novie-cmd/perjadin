@@ -8,14 +8,18 @@ interface Props {
   employees: Employee[];
   skpd: SKPDConfig;
   officials: Official[];
-  destinationOfficials?: DestinationOfficial[];
+  destinationOfficials: DestinationOfficial[];
 }
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
   const provinsiValue = skpd.provinsi?.trim() || '';
+  
+  // Tentukan teks untuk Baris 1 (Pemerintah) - Gunakan fallback jika kosong
   const displayProvinsiBaris1 = provinsiValue || "PROVINSI NUSA TENGGARA BARAT";
+  
+  // Cek apakah nama SKPD sudah mengandung teks Provinsi yang diinput (untuk Baris 3)
   const isProvInName = provinsiValue && (
     skpd.namaSkpd.toUpperCase().includes(provinsiValue.toUpperCase()) ||
     skpd.namaSkpd.toUpperCase().includes(provinsiValue.toUpperCase().replace('PROVINSI ', 'PROV. '))
@@ -23,8 +27,12 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
   
   const nameLen = skpd.namaSkpd.length;
   let skpdFontSize = 'text-[20pt]';
-  if (nameLen > 55) skpdFontSize = 'text-[14pt]';
-  else if (nameLen > 40) skpdFontSize = 'text-[17pt]';
+  
+  if (nameLen > 55) {
+    skpdFontSize = 'text-[14pt]';
+  } else if (nameLen > 40) {
+    skpdFontSize = 'text-[17pt]';
+  }
 
   return (
     <div className="text-center mb-4 font-['Tahoma']">
@@ -33,13 +41,27 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
           <img src={skpd.logo || DEFAULT_LOGO} alt="Logo" className="max-w-full max-h-full object-contain" />
         </div>
         <div className="flex-1 px-2">
-          <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">Pemerintah {displayProvinsiBaris1}</h3>
-          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>{skpd.namaSkpd}</h2>
+          {/* Baris 1: Pemerintah (Selalu tampil, default ke NTB jika field provinsi kosong) */}
+          <h3 className="text-[14pt] font-normal uppercase whitespace-nowrap leading-tight">
+            Pemerintah {displayProvinsiBaris1}
+          </h3>
+          
+          {/* Baris 2: Nama SKPD (1 baris, font menyesuaikan) */}
+          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>
+            {skpd.namaSkpd}
+          </h2>
+          
+          {/* Baris 3: Tampilkan hanya jika field provinsi diisi DAN teks tersebut tidak ada di Baris 2 */}
           {provinsiValue && !isProvInName && (
-            <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>{provinsiValue.toUpperCase()}</h2>
+            <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>
+              {provinsiValue.toUpperCase()}
+            </h2>
           )}
+
           <p className="text-[10pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
-          {skpd.lokasi && <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>}
+          {skpd.lokasi && (
+            <p className="text-[10pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>
+          )}
         </div>
         <div className="w-24 h-24 flex-shrink-0 opacity-0">Logo</div>
       </div>
@@ -173,12 +195,21 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
       <Header skpd={skpd} />
       <div className="flex justify-end mb-2">
         <div className="w-1/2 text-[10pt]">
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Lembar Ke</span><span>:</span><span></span></div>
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Kode No</span><span>:</span><span></span></div>
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Nomor</span><span>:</span><span>{assignment.assignmentNumber}</span></div>
+          <div className="grid grid-cols-[80px_10px_1fr]">
+            <span>Lembar Ke</span><span>:</span><span></span>
+          </div>
+          <div className="grid grid-cols-[80px_10px_1fr]">
+            <span>Kode No</span><span>:</span><span></span>
+          </div>
+          <div className="grid grid-cols-[80px_10px_1fr]">
+            <span>Nomor</span><span>:</span><span>{assignment.assignmentNumber}</span>
+          </div>
         </div>
       </div>
-      <div className="text-center mb-4"><h2 className="text-[13pt] font-bold underline uppercase">SURAT PERJALANAN DINAS (SPD)</h2></div>
+      <div className="text-center mb-4">
+        <h2 className="text-[13pt] font-bold underline uppercase">SURAT PERJALANAN DINAS (SPD)</h2>
+      </div>
+
       <table className="w-full border-collapse border border-black text-[11pt]">
         <tbody>
           <tr>
@@ -193,8 +224,16 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">3.</td>
-            <td className="border border-black p-1 align-top">a. Pangkat dan Golongan<br/>b. Jabatan / Instansi<br/>c. Tingkat Biaya Perjalanan Dinas</td>
-            <td className="border border-black p-1 align-top">a. {firstEmp?.pangkatGol}<br/>b. {firstEmp?.jabatan}<br/>c. </td>
+            <td className="border border-black p-1 align-top">
+              a. Pangkat dan Golongan<br/>
+              b. Jabatan / Instansi<br/>
+              c. Tingkat Biaya Perjalanan Dinas
+            </td>
+            <td className="border border-black p-1 align-top">
+              a. {firstEmp?.pangkatGol}<br/>
+              b. {firstEmp?.jabatan}<br/>
+              c. 
+            </td>
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">4.</td>
@@ -208,23 +247,49 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">6.</td>
-            <td className="border border-black p-1 align-top">a. Tempat berangkat<br/>b. Tempat tujuan</td>
-            <td className="border border-black p-1 align-top">a. {assignment.origin}<br/>b. {assignment.destination}</td>
+            <td className="border border-black p-1 align-top">
+              a. Tempat berangkat<br/>
+              b. Tempat tujuan
+            </td>
+            <td className="border border-black p-1 align-top">
+              a. {assignment.origin}<br/>
+              b. {assignment.destination}
+            </td>
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">7.</td>
-            <td className="border border-black p-1 align-top">a. Lamanya Perjalanan Dinas<br/>b. Tanggal berangkat<br/>c. Tanggal harus kembali/tiba di tempat baru</td>
-            <td className="border border-black p-1 align-top">a. {assignment.durationDays} ( {numberToWords(assignment.durationDays)} ) Hari<br/>b. {formatDateID(assignment.startDate)}<br/>c. {formatDateID(assignment.endDate)}</td>
+            <td className="border border-black p-1 align-top">
+              a. Lamanya Perjalanan Dinas<br/>
+              b. Tanggal berangkat<br/>
+              c. Tanggal harus kembali/tiba di tempat baru
+            </td>
+            <td className="border border-black p-1 align-top">
+              a. {assignment.durationDays} ( {numberToWords(assignment.durationDays)} ) Hari<br/>
+              b. {formatDateID(assignment.startDate)}<br/>
+              c. {formatDateID(assignment.endDate)}
+            </td>
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">8.</td>
             <td className="border border-black p-1 align-top">Pengikut : Nama</td>
-            <td className="border border-black p-1 align-top">{assignment.selectedEmployeeIds.slice(1).map((id, idx) => (<div key={id}>{idx + 1}. {employees.find(e => e.id === id)?.name}</div>))}</td>
+            <td className="border border-black p-1 align-top">
+              {assignment.selectedEmployeeIds.slice(1).map((id, idx) => (
+                <div key={id}>{idx + 1}. {employees.find(e => e.id === id)?.name}</div>
+              ))}
+            </td>
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">9.</td>
-            <td className="border border-black p-1 align-top">Pembebanan Anggaran<br/>a. Instansi<br/>b. Akun</td>
-            <td className="border border-black p-1 align-top"><br/>a. {skpd.namaSkpd}<br/>b. {assignment.subActivityCode}</td>
+            <td className="border border-black p-1 align-top">
+              Pembebanan Anggaran<br/>
+              a. Instansi<br/>
+              b. Akun
+            </td>
+            <td className="border border-black p-1 align-top">
+              <br/>
+              a. {skpd.namaSkpd}<br/>
+              b. {assignment.subActivityCode}
+            </td>
           </tr>
           <tr>
             <td className="border border-black p-1 text-center align-top">10.</td>
@@ -233,12 +298,15 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
           </tr>
         </tbody>
       </table>
+
       <div className="mt-8 grid grid-cols-2 text-[11pt]">
         <div></div>
         <div className="text-left pl-12">
           <p>Dikeluarkan di : {skpd.lokasi || 'Mataram'}</p>
           <p className="mb-4">Pada Tanggal : {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
-          <div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div>
+          <div className="min-h-[50px]">
+            <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
+          </div>
           <div className="h-16"></div>
           <p className="font-bold underline uppercase">{kepala.name}</p>
           <p>NIP. {kepala.nip}</p>
@@ -248,12 +316,14 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
   );
 };
 
-export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials, destinationOfficials = [] }) => {
+export const SPPDBackTemplate: React.FC<{ 
+  assignment: TravelAssignment; 
+  skpd: SKPDConfig; 
+  officials: Official[];
+  destinationOfficials: DestinationOfficial[];
+}> = ({ assignment, skpd, officials, destinationOfficials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
-  
-  // Ambil data pejabat tujuan berdasarkan ID yang tersimpan di assignment
-  const dest1 = destinationOfficials.find(o => o.id === (assignment.destinationOfficialIds || [])[0]);
-  const dest2 = destinationOfficials.find(o => o.id === (assignment.destinationOfficialIds || [])[1]);
+  const destOff = destinationOfficials.find(o => o.id === assignment.destinationOfficialId);
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] relative leading-tight">
@@ -273,79 +343,63 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
       </div>
 
       <div className="space-y-0 border-t border-black">
-        {['II', 'III', 'IV'].map((blok, idx) => {
-          // Pilih data pejabat untuk ditampilkan (II=dest1, III=dest2, IV=Kosong/PPTK)
-          const currentDest = idx === 0 ? dest1 : idx === 1 ? dest2 : null;
-          
-          return (
-            <div key={blok} className="grid grid-cols-2 border-b border-black">
-              {/* KOLOM TIBA */}
-              <div className="border-r border-black p-2 min-h-[160px]">
-                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
-                  <span className="font-bold">{blok}.</span>
-                  <span>Tiba di</span>
-                  <span>:</span>
-                  <span>{idx === 0 ? assignment.destination : idx === 1 ? '......................' : (skpd.lokasi || 'Mataram')}</span>
-                  
-                  <span></span>
-                  <span>Pada tanggal</span>
-                  <span>:</span>
-                  <span>{idx === 0 ? formatDateID(assignment.startDate) : '......................'}</span>
-                  
-                  <span></span>
-                  <span className="align-top">Kepala</span>
-                  <span className="align-top">:</span>
-                  <div className="flex flex-col text-center">
-                    {currentDest ? (
-                      <>
-                        <p className="text-[9pt] font-bold leading-none mt-2 uppercase">{currentDest.jabatan}</p>
-                        <p className="text-[9pt] font-bold leading-none uppercase">{currentDest.instansi}</p>
-                        <div className="h-10"></div>
-                        <p className="text-[9pt] font-bold underline uppercase">{currentDest.name}</p>
-                        <p className="text-[8pt]">NIP. {currentDest.nip}</p>
-                      </>
-                    ) : (
-                      <span className="h-12 border-b border-black border-dashed mt-2"></span>
-                    )}
-                  </div>
+        {['II', 'III', 'IV'].map((id) => (
+          <div key={id} className="grid grid-cols-2 border-b border-black">
+            <div className="border-r border-black p-2 min-h-[160px]">
+              <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
+                <span className="font-bold">{id}.</span>
+                <span>Tiba di</span>
+                <span>:</span>
+                <span>{id === 'II' ? assignment.destination : ''}</span>
+                
+                <span></span>
+                <span>Pada tanggal</span>
+                <span>:</span>
+                <span>{id === 'II' ? formatDateID(assignment.startDate) : ''}</span>
+                
+                <span></span>
+                <span className="align-top">Kepala</span>
+                <span className="align-top">:</span>
+                <div className="flex flex-col">
+                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
                 </div>
               </div>
-
-              {/* KOLOM BERANGKAT */}
-              <div className="p-2 min-h-[160px]">
-                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
-                  <span>Berangkat dari</span>
-                  <span>:</span>
-                  <span>{idx === 0 ? assignment.destination : idx === 1 ? '......................' : '......................'}</span>
-                  
-                  <span>Ke</span>
-                  <span>:</span>
-                  <span>{idx === 0 ? '......................' : idx === 1 ? (skpd.lokasi || 'Mataram') : '......................'}</span>
-                  
-                  <span>Pada tanggal</span>
-                  <span>:</span>
-                  <span>{idx === 0 ? '......................' : idx === 1 ? formatDateID(assignment.endDate) : '......................'}</span>
-                  
-                  <span className="align-top">Kepala</span>
-                  <span className="align-top">:</span>
-                  <div className="flex flex-col text-center">
-                    {currentDest ? (
-                      <>
-                        <p className="text-[9pt] font-bold leading-none mt-2 uppercase">{currentDest.jabatan}</p>
-                        <p className="text-[9pt] font-bold leading-none uppercase">{currentDest.instansi}</p>
-                        <div className="h-10"></div>
-                        <p className="text-[9pt] font-bold underline uppercase">{currentDest.name}</p>
-                        <p className="text-[8pt]">NIP. {currentDest.nip}</p>
-                      </>
-                    ) : (
-                      <span className="h-12 border-b border-black border-dashed mt-2"></span>
-                    )}
-                  </div>
-                </div>
+              <div className="mt-6 text-center">
+                <div className="h-10"></div>
+                <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
+                <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
               </div>
             </div>
-          );
-        })}
+            <div className="p-2 min-h-[160px]">
+              <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
+                <span>Berangkat dari</span>
+                <span>:</span>
+                <span>{id === 'II' ? assignment.destination : ''}</span>
+                
+                <span>Ke</span>
+                <span>:</span>
+                <span>{id === 'II' ? (skpd.lokasi || 'Mataram') : ''}</span>
+                
+                <span>Pada tanggal</span>
+                <span>:</span>
+                <span>{id === 'II' ? formatDateID(assignment.endDate) : ''}</span>
+                
+                <span className="align-top">Kepala</span>
+                <span className="align-top">:</span>
+                <div className="flex flex-col">
+                  <span>{id === 'II' ? (destOff?.jabatan || '') : ''}</span>
+                  <span className="font-bold uppercase">{id === 'II' ? (destOff?.instansi || '') : ''}</span>
+                </div>
+              </div>
+              <div className="mt-6 text-center">
+                <div className="h-10"></div>
+                <p className="font-bold underline uppercase">{id === 'II' ? (destOff?.name || '') : ''}</p>
+                <p>{id === 'II' && destOff ? `NIP. ${destOff.nip}` : ''}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-4">
@@ -353,7 +407,9 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
         <div className="grid grid-cols-2 mt-4">
           <div></div>
           <div className="text-center">
-            <div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div>
+            <div className="min-h-[50px]">
+              <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
+            </div>
             <div className="h-16"></div>
             <p className="font-bold underline uppercase">{kepala.name}</p>
             <p>NIP. {kepala.nip}</p>
@@ -376,6 +432,7 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
       {assignment.costs.map((cost) => {
         const emp = employees.find(e => e.id === cost.employeeId);
         if (!emp) return null;
+        
         const subTotalDaily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
         const subTotalLodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
         const subTotalTransport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
@@ -391,33 +448,89 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
              </div>
              <table className="w-full border-collapse border border-black mb-2 text-[11pt]">
                 <thead className="text-center font-bold">
-                  <tr><th className="border border-black p-1 w-10">No.</th><th className="border border-black p-1">Perincian Biaya</th><th className="border border-black p-1 w-36">Jumlah</th><th className="border border-black p-1 w-36">Keterangan</th></tr>
+                  <tr>
+                    <th className="border border-black p-1 w-10">No.</th>
+                    <th className="border border-black p-1">Perincian Biaya</th>
+                    <th className="border border-black p-1 w-36">Jumlah</th>
+                    <th className="border border-black p-1 w-36">Keterangan</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  <tr><td className="border border-black p-1 text-center align-top">1</td><td className="border border-black p-1">Transportasi<br/>- Transport BBM / Umum (PP)<br/>- Transport Lokal / Taksi</td><td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalTransport)}</td><td className="border border-black p-1"></td></tr>
-                  <tr><td className="border border-black p-1 text-center align-top">2</td><td className="border border-black p-1">Biaya penginapan</td><td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalLodging)}</td><td className="border border-black p-1"></td></tr>
-                  <tr><td className="border border-black p-1 text-center align-top">3</td><td className="border border-black p-1">Uang Harian Golongan {emp.pangkatGol.split('(')[1]?.replace(')', '') || ''}<br/>- Uang Harian ({cost.dailyDays || 0} Hari x Rp. {formatNumber(cost.dailyAllowance || 0)})</td><td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalDaily)}</td><td className="border border-black p-1"></td></tr>
-                  <tr><td className="border border-black p-1 text-center align-top">4</td><td className="border border-black p-1">Uang Representasi ({cost.representationDays || 0} Hari x Rp. {formatNumber(cost.representation || 0)})</td><td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalRepres)}</td><td className="border border-black p-1"></td></tr>
-                  <tr className="font-bold"><td colSpan={2} className="border border-black p-1 text-center">Jumlah</td><td className="border border-black p-1 text-right">Rp. {formatNumber(grandTotal)}</td><td className="border border-black p-1"></td></tr>
+                  <tr>
+                    <td className="border border-black p-1 text-center align-top">1</td>
+                    <td className="border border-black p-1">Transportasi<br/>- Transport BBM / Umum (PP)<br/>- Transport Lokal / Taksi</td>
+                    <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalTransport)}</td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-1 text-center align-top">2</td>
+                    <td className="border border-black p-1">Biaya penginapan</td>
+                    <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalLodging)}</td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-1 text-center align-top">3</td>
+                    <td className="border border-black p-1">Uang Harian Golongan {emp.pangkatGol.split('(')[1]?.replace(')', '') || ''}<br/>- Uang Harian ({cost.dailyDays || 0} Hari x Rp. {formatNumber(cost.dailyAllowance || 0)})</td>
+                    <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalDaily)}</td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
+                  <tr>
+                    <td className="border border-black p-1 text-center align-top">4</td>
+                    <td className="border border-black p-1">Uang Representasi ({cost.representationDays || 0} Hari x Rp. {formatNumber(cost.representation || 0)})</td>
+                    <td className="border border-black p-1 text-right align-top">Rp. {formatNumber(subTotalRepres)}</td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
+                  <tr className="font-bold">
+                    <td colSpan={2} className="border border-black p-1 text-center">Jumlah</td>
+                    <td className="border border-black p-1 text-right">Rp. {formatNumber(grandTotal)}</td>
+                    <td className="border border-black p-1"></td>
+                  </tr>
                 </tbody>
              </table>
              <div className="italic mb-8 uppercase font-bold text-[10pt]">//// {numberToWords(grandTotal)} Rupiah ////</div>
+             
              <div className="grid grid-cols-2 gap-4 text-center mb-8">
                <div>
-                  <p>Telah dibayar sejumlah :</p><p className="mb-1">Rp. {formatNumber(grandTotal)}</p>
-                  <div className="min-h-[40px]"><p className="font-bold">{bendahara.jabatan},</p></div>
-                  <div className="h-16"></div><p className="font-bold underline uppercase">{bendahara.name}</p><p>NIP. {bendahara.nip}</p>
+                  <p>Telah dibayar sejumlah :</p>
+                  <p className="mb-1">Rp. {formatNumber(grandTotal)}</p>
+                  <div className="min-h-[40px]">
+                    <p className="font-bold">{bendahara.jabatan},</p>
+                  </div>
+                  <div className="h-16"></div>
+                  <p className="font-bold underline uppercase">{bendahara.name}</p>
+                  <p>NIP. {bendahara.nip}</p>
                </div>
                <div>
-                  <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p><p>Telah menerima jumlah uang sebesar :</p><p className="mb-1">Rp. {formatNumber(grandTotal)}</p>
-                  <div className="min-h-[40px]"><p className="font-bold">Yang menerima,</p></div>
-                  <div className="h-16"></div><p className="font-bold underline uppercase">{emp.name}</p><p>NIP. {emp.nip}</p>
+                  <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+                  <p>Telah menerima jumlah uang sebesar :</p>
+                  <p className="mb-1">Rp. {formatNumber(grandTotal)}</p>
+                  <div className="min-h-[40px]">
+                    <p className="font-bold">Yang menerima,</p>
+                  </div>
+                  <div className="h-16"></div>
+                  <p className="font-bold underline uppercase">{emp.name}</p>
+                  <p>NIP. {emp.nip}</p>
                </div>
              </div>
+
              <div className="border-t border-black pt-4">
                 <p className="text-center font-bold mb-4 uppercase">PERHITUNGAN SPD RAMPUNG</p>
-                <div className="flex justify-center"><div className="w-1/2 space-y-1"><div className="grid grid-cols-[180px_10px_1fr]"><span>Ditetapkan sejumlah</span><span>:</span><span>Rp. {formatNumber(grandTotal)}</span></div><div className="grid grid-cols-[180px_10px_1fr]"><span>Yang telah dibayar semula</span><span>:</span><span>Rp. {formatNumber(grandTotal)}</span></div><div className="grid grid-cols-[180px_10px_1fr] border-t border-black"><span>Sisa kurang/lebih</span><span>:</span><span>Rp. -</span></div></div></div>
-                <div className="mt-4 text-center pl-48"><p className="font-bold">Mengetahui/Menyetujui :</p><div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div><div className="h-16"></div><p className="font-bold underline uppercase">{kepala.name}</p><p>NIP. {kepala.nip}</p></div>
+                <div className="flex justify-center">
+                   <div className="w-1/2 space-y-1">
+                      <div className="grid grid-cols-[180px_10px_1fr]"><span>Ditetapkan sejumlah</span><span>:</span><span>Rp. {formatNumber(grandTotal)}</span></div>
+                      <div className="grid grid-cols-[180px_10px_1fr]"><span>Yang telah dibayar semula</span><span>:</span><span>Rp. {formatNumber(grandTotal)}</span></div>
+                      <div className="grid grid-cols-[180px_10px_1fr] border-t border-black"><span>Sisa kurang/lebih</span><span>:</span><span>Rp. -</span></div>
+                   </div>
+                </div>
+                <div className="mt-4 text-center pl-48">
+                   <p className="font-bold">Mengetahui/Menyetujui :</p>
+                   <div className="min-h-[50px]">
+                     <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
+                   </div>
+                   <div className="h-16"></div>
+                   <p className="font-bold underline uppercase">{kepala.name}</p>
+                   <p>NIP. {kepala.nip}</p>
+                </div>
              </div>
           </div>
         );
@@ -435,25 +548,76 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
     const repres = (cost.representation || 0) * (cost.representationDays || 0);
     return sum + daily + lodging + transport + repres;
   }, 0);
+  
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] leading-tight">
       <Header skpd={skpd} />
-      <div className="flex justify-end mb-4"><div className="border border-black p-2 w-[280px] space-y-1 text-[10pt]"><div className="grid grid-cols-[100px_10px_1fr]"><span>Kode Kegiatan</span><span>:</span><span>{assignment.subActivityCode}</span></div><div className="grid grid-cols-[100px_10px_1fr]"><span>Dibukukan Tgl.</span><span>:</span><span></span></div><div className="grid grid-cols-[100px_10px_1fr]"><span>Nomor Buku</span><span>:</span><span></span></div><div className="grid grid-cols-[100px_10px_1fr]"><span>Sumber Dana</span><span>:</span><span></span></div></div></div>
+      <div className="flex justify-end mb-4">
+        <div className="border border-black p-2 w-[280px] space-y-1 text-[10pt]">
+           <div className="grid grid-cols-[100px_10px_1fr]"><span>Kode Kegiatan</span><span>:</span><span>{assignment.subActivityCode}</span></div>
+           <div className="grid grid-cols-[100px_10px_1fr]"><span>Dibukukan Tgl.</span><span>:</span><span></span></div>
+           <div className="grid grid-cols-[100px_10px_1fr]"><span>Nomor Buku</span><span>:</span><span></span></div>
+           <div className="grid grid-cols-[100px_10px_1fr]"><span>Sumber Dana</span><span>:</span><span></span></div>
+        </div>
+      </div>
       <div className="text-center mb-8"><h1 className="text-xl font-bold underline uppercase tracking-[0.2em]">KUITANSI</h1></div>
       <div className="space-y-4 mb-8">
         <div className="grid grid-cols-[160px_10px_1fr]"><span>Terima dari</span><span>:</span><span className="font-bold uppercase leading-tight">{kepala.jabatan}</span></div>
         <div className="grid grid-cols-[160px_10px_1fr] italic"><span>Banyaknya</span><span>:</span><span className="font-bold">//// {numberToWords(totalAll)} Rupiah ////</span></div>
         <div className="grid grid-cols-[160px_10px_1fr]"><span>Untuk Pembayaran</span><span>:</span><span className="text-justify leading-relaxed">Belanja Perjalanan Dinas Dalam Daerah ke {assignment.destination} selama {assignment.durationDays} hari dalam rangka {assignment.purpose} sesuai Surat Perintah Tugas {kepala.jabatan} Nomor : {assignment.assignmentNumber} tanggal {formatDateID(assignment.signDate)} a.n. {firstEmp?.name}</span></div>
       </div>
-      <div className="border-t-2 border-b-2 border-black py-2 mb-8 flex items-center px-4 gap-4"><span className="font-bold">Terbilang :</span><span className="font-bold text-lg">Rp. {formatNumber(totalAll)}</span></div>
-      <div className="grid grid-cols-3 gap-2 text-center text-[10pt] mb-8">
-        <div className="flex flex-col"><p>Menyetujui :</p><div className="h-[85px] flex items-start justify-center overflow-hidden"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div><div className="h-10"></div><div className="mt-auto"><p className="font-bold underline uppercase">{kepala.name}</p><p>NIP. {kepala.nip}</p></div></div>
-        <div className="flex flex-col"><p>Lunas dibayar :</p><div className="h-[85px] flex items-start justify-center overflow-hidden"><p className="font-bold uppercase">{bendahara.jabatan}</p></div><div className="h-10"></div><div className="mt-auto"><p className="font-bold underline uppercase">{bendahara.name}</p><p>NIP. {bendahara.nip}</p></div></div>
-        <div className="flex flex-col"><p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p><div className="h-[85px] flex items-start justify-center overflow-hidden"><p className="font-bold uppercase">Yang menerima uang,</p></div><div className="h-10"></div><div className="mt-auto"><p className="font-bold underline uppercase">{firstEmp?.name}</p><p>NIP. {firstEmp?.nip}</p></div></div>
+      <div className="border-t-2 border-b-2 border-black py-2 mb-8 flex items-center px-4 gap-4">
+        <span className="font-bold">Terbilang :</span>
+        <span className="font-bold text-lg">Rp. {formatNumber(totalAll)}</span>
       </div>
-      <div className="text-center mt-4 flex flex-col items-center"><p>Mengetahui,</p><div className="h-[50px] flex items-start justify-center"><p className="font-bold uppercase leading-tight">{pptk.jabatan}</p></div><div className="h-16"></div><p className="font-bold underline uppercase">{pptk.name}</p><p>NIP. {pptk.nip}</p></div>
+      
+      <div className="grid grid-cols-3 gap-2 text-center text-[10pt] mb-8">
+        <div className="flex flex-col">
+          <p>Menyetujui :</p>
+          <div className="h-[85px] flex items-start justify-center overflow-hidden">
+            <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
+          </div>
+          <div className="h-10"></div>
+          <div className="mt-auto">
+            <p className="font-bold underline uppercase">{kepala.name}</p>
+            <p>NIP. {kepala.nip}</p>
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <p>Lunas dibayar :</p>
+          <div className="h-[85px] flex items-start justify-center overflow-hidden">
+            <p className="font-bold uppercase">{bendahara.jabatan}</p>
+          </div>
+          <div className="h-10"></div>
+          <div className="mt-auto">
+            <p className="font-bold underline uppercase">{bendahara.name}</p>
+            <p>NIP. {bendahara.nip}</p>
+          </div>
+        </div>
+        <div className="flex flex-col">
+          <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+          <div className="h-[85px] flex items-start justify-center overflow-hidden">
+            <p className="font-bold uppercase">Yang menerima uang,</p>
+          </div>
+          <div className="h-10"></div>
+          <div className="mt-auto">
+            <p className="font-bold underline uppercase">{firstEmp?.name}</p>
+            <p>NIP. {firstEmp?.nip}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center mt-4 flex flex-col items-center">
+        <p>Mengetahui,</p>
+        <div className="h-[50px] flex items-start justify-center">
+          <p className="font-bold uppercase leading-tight">{pptk.jabatan}</p>
+        </div>
+        <div className="h-16"></div>
+        <p className="font-bold underline uppercase">{pptk.name}</p>
+        <p>NIP. {pptk.nip}</p>
+      </div>
     </div>
   );
 };
@@ -470,9 +634,24 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
 
   return (
     <div className="landscape-page bg-white font-['Tahoma'] text-[11pt] leading-tight">
-       <div className="text-center mb-6"><p className="font-bold uppercase">Daftar Penerimaan Uang Perjalanan Dinas Ke {assignment.destination} Dalam Rangka {assignment.purpose}</p><p className="font-bold">Nomor : {assignment.assignmentNumber} Tanggal {formatDateID(assignment.signDate)}</p></div>
+       <div className="text-center mb-6">
+          <p className="font-bold uppercase">Daftar Penerimaan Uang Perjalanan Dinas Ke {assignment.destination} Dalam Rangka {assignment.purpose}</p>
+          <p className="font-bold">Nomor : {assignment.assignmentNumber} Tanggal {formatDateID(assignment.signDate)}</p>
+       </div>
        <table className="w-full border-collapse border border-black mb-2 text-[10pt]">
-          <thead className="text-center font-bold bg-slate-50"><tr><th className="border border-black p-1 w-8">No</th><th className="border border-black p-1 w-64">Nama</th><th className="border border-black p-1 w-16">Gol</th><th className="border border-black p-1">Lumpsum</th><th className="border border-black p-1">Akomodasi</th><th className="border border-black p-1">Transportasi</th><th className="border border-black p-1">Representasi</th><th className="border border-black p-1 w-32">Jumlah</th><th className="border border-black p-1 w-40">Tanda Tangan</th></tr></thead>
+          <thead className="text-center font-bold bg-slate-50">
+            <tr>
+              <th className="border border-black p-1 w-8">No</th>
+              <th className="border border-black p-1 w-64">Nama</th>
+              <th className="border border-black p-1 w-16">Gol</th>
+              <th className="border border-black p-1">Lumpsum</th>
+              <th className="border border-black p-1">Akomodasi</th>
+              <th className="border border-black p-1">Transportasi</th>
+              <th className="border border-black p-1">Representasi</th>
+              <th className="border border-black p-1 w-32">Jumlah</th>
+              <th className="border border-black p-1 w-40">Tanda Tangan</th>
+            </tr>
+          </thead>
           <tbody>
             {assignment.costs.map((cost, i) => {
               const emp = employees.find(e => e.id === cost.employeeId);
@@ -481,15 +660,56 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
               const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
               const repres = (cost.representation || 0) * (cost.representationDays || 0);
               const total = daily + lodging + transport + repres;
-              return (<tr key={cost.employeeId}><td className="border border-black p-1 text-center">{i + 1}</td><td className="border border-black p-1">{emp?.name}</td><td className="border border-black p-1 text-center">{emp?.pangkatGol.split('(')[1]?.replace(')', '') || ''}</td><td className="border border-black p-1 text-center">{cost.dailyDays || 0} hr x Rp {formatNumber(cost.dailyAllowance || 0)}</td><td className="border border-black p-1 text-center">{cost.lodgingDays || 0} hr x Rp {formatNumber(cost.lodging || 0)}</td><td className="border border-black p-1 text-center">Rp {formatNumber(transport)}</td><td className="border border-black p-1 text-center">Rp {formatNumber(repres)}</td><td className="border border-black p-1 text-right font-bold">Rp {formatNumber(total)}</td><td className="border border-black p-1 relative min-h-[30px]"><span className={`absolute ${i % 2 === 0 ? 'left-1' : 'right-4'} top-1 font-bold`}>{i + 1}.</span></td></tr>);
+              
+              return (
+                <tr key={cost.employeeId}>
+                  <td className="border border-black p-1 text-center">{i + 1}</td>
+                  <td className="border border-black p-1">{emp?.name}</td>
+                  <td className="border border-black p-1 text-center">{emp?.pangkatGol.split('(')[1]?.replace(')', '') || ''}</td>
+                  <td className="border border-black p-1 text-center">{cost.dailyDays || 0} hr x Rp {formatNumber(cost.dailyAllowance || 0)}</td>
+                  <td className="border border-black p-1 text-center">{cost.lodgingDays || 0} hr x Rp {formatNumber(cost.lodging || 0)}</td>
+                  <td className="border border-black p-1 text-center">Rp {formatNumber(transport)}</td>
+                  <td className="border border-black p-1 text-center">Rp {formatNumber(repres)}</td>
+                  <td className="border border-black p-1 text-right font-bold">Rp {formatNumber(total)}</td>
+                  <td className="border border-black p-1 relative min-h-[30px]">
+                    <span className={`absolute ${i % 2 === 0 ? 'left-1' : 'right-4'} top-1 font-bold`}>{i + 1}.</span>
+                  </td>
+                </tr>
+              );
             })}
           </tbody>
-          <tfoot className="font-bold"><tr><td colSpan={7} className="border border-black p-1 text-center uppercase">Jumlah Total</td><td className="border border-black p-1 text-right">Rp {formatNumber(totalAll)}</td><td className="border border-black p-1"></td></tr></tfoot>
+          <tfoot className="font-bold">
+            <tr>
+              <td colSpan={7} className="border border-black p-1 text-center uppercase">Jumlah Total</td>
+              <td className="border border-black p-1 text-right">Rp {formatNumber(totalAll)}</td>
+              <td className="border border-black p-1"></td>
+            </tr>
+          </tfoot>
        </table>
-       <div className="mb-8 mt-2 pl-1"><p className="font-bold italic text-[10pt]">Terbilang : Rp. {formatNumber(totalAll)} ( {numberToWords(totalAll)} Rupiah )</p></div>
+       
+       <div className="mb-8 mt-2 pl-1">
+          <p className="font-bold italic text-[10pt]">Terbilang : Rp. {formatNumber(totalAll)} ( {numberToWords(totalAll)} Rupiah )</p>
+       </div>
+
        <div className="grid grid-cols-2 text-center mt-4 text-[11pt]">
-          <div className="pl-12"><p>Mengetahui/Menyetujui :</p><div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div><div className="h-16"></div><p className="font-bold underline uppercase">{kepala.name}</p><p>NIP. {kepala.nip}</p></div>
-          <div className="pr-12"><p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p><div className="min-h-[50px]"><p className="font-bold uppercase mb-4">{bendahara.jabatan}</p></div><div className="h-16"></div><p className="font-bold underline uppercase">{bendahara.name}</p><p>NIP. {bendahara.nip}</p></div>
+          <div className="pl-12">
+            <p>Mengetahui/Menyetujui :</p>
+            <div className="min-h-[50px]">
+              <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
+            </div>
+            <div className="h-16"></div>
+            <p className="font-bold underline uppercase">{kepala.name}</p>
+            <p>NIP. {kepala.nip}</p>
+          </div>
+          <div className="pr-12">
+            <p>{skpd.lokasi || 'Mataram'}, {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+            <div className="min-h-[50px]">
+              <p className="font-bold uppercase mb-4">{bendahara.jabatan}</p>
+            </div>
+            <div className="h-16"></div>
+            <p className="font-bold underline uppercase">{bendahara.name}</p>
+            <p>NIP. {bendahara.nip}</p>
+          </div>
        </div>
     </div>
   );

@@ -88,20 +88,45 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
   }
 
   return (
-    <div className="print-page bg-white p-10 space-y-10">
-      <h2 className="text-center font-bold uppercase underline mb-8">Informasi Pejabat Tujuan</h2>
-      <div className="grid grid-cols-1 gap-12">
+    <div className="print-page bg-white p-10 font-['Tahoma']">
+      <h2 className="text-center font-bold uppercase underline mb-12 text-[14pt]">Informasi Pejabat Pengesah Tujuan</h2>
+      
+      <div className="space-y-12">
         {list.map((off, idx) => (
-          <div key={off.id} className="p-8 border-2 border-slate-100 rounded-3xl bg-slate-50/30">
-            <h3 className="font-black text-slate-400 uppercase text-[10pt] mb-4">Pejabat Tujuan {idx + 1}</h3>
-            <div className="space-y-2 text-[12pt]">
-              <div className="grid grid-cols-[120px_10px_1fr] font-bold"><span>Jabatan</span><span>:</span><span>{off.jabatan}</span></div>
-              <div className="grid grid-cols-[120px_10px_1fr] font-black uppercase text-blue-700"><span>SKPD/Instansi</span><span>:</span><span>{off.instansi}</span></div>
-              <div className="grid grid-cols-[120px_10px_1fr] font-black text-slate-800 underline"><span>Nama Pejabat</span><span>:</span><span>{off.name}</span></div>
-              <div className="grid grid-cols-[120px_10px_1fr] font-mono"><span>NIP</span><span>:</span><span>{off.nip}</span></div>
+          <div key={off.id} className="p-8 border-2 border-slate-200 rounded-3xl bg-slate-50/50">
+            <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-3">
+              <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-sm">{idx + 1}</span>
+              <h3 className="font-black text-slate-800 uppercase text-[11pt]">Pejabat Pengesah Lokasi {idx === 0 ? 'II (Tiba)' : 'III (Berangkat)'}</h3>
+            </div>
+            
+            <div className="space-y-4 text-[12pt] ml-4">
+              <div className="grid grid-cols-[140px_10px_1fr]">
+                <span className="text-slate-500 font-bold uppercase text-[10pt]">Jabatan</span>
+                <span className="font-bold">:</span>
+                <span className="font-black text-slate-800 uppercase">{off.jabatan}</span>
+              </div>
+              <div className="grid grid-cols-[140px_10px_1fr]">
+                <span className="text-slate-500 font-bold uppercase text-[10pt]">Instansi</span>
+                <span className="font-bold">:</span>
+                <span className="font-black text-blue-700 uppercase">{off.instansi}</span>
+              </div>
+              <div className="grid grid-cols-[140px_10px_1fr]">
+                <span className="text-slate-500 font-bold uppercase text-[10pt]">Nama Pejabat</span>
+                <span className="font-bold">:</span>
+                <span className="font-black text-slate-900 uppercase underline decoration-2 underline-offset-4">{off.name}</span>
+              </div>
+              <div className="grid grid-cols-[140px_10px_1fr]">
+                <span className="text-slate-500 font-bold uppercase text-[10pt]">NIP</span>
+                <span className="font-bold">:</span>
+                <span className="font-mono font-bold text-slate-700">{off.nip}</span>
+              </div>
             </div>
           </div>
         ))}
+      </div>
+      
+      <div className="mt-12 p-6 bg-amber-50 rounded-2xl border border-amber-100 italic text-[10pt] text-amber-700 text-center">
+        * Gunakan informasi di atas sebagai acuan pengisian stempel dan tanda tangan pada Lembar SPPD Halaman Belakang.
       </div>
     </div>
   );

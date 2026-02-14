@@ -1,3 +1,4 @@
+
 -- 1. TABEL PEGAWAI
 CREATE TABLE IF NOT EXISTS employees (
   id TEXT PRIMARY KEY,
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS assignments (
   pptk_id TEXT,
   signer_id TEXT,
   bendahara_id TEXT,
-  destination_official_id TEXT,
+  destination_official_ids TEXT[], -- Menggunakan Array TEXT[] untuk mendukung multiple pejabat
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -107,7 +108,18 @@ ALTER TABLE master_costs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sub_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
 
--- Cek dan Tambah kolom jika belum ada (untuk sinkronisasi schema cache)
+-- Migrasi jika kolom lama masih ada
+DO $$ 
+BEGIN 
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='assignments' AND column_name='destination_official_id') THEN
+    ALTER TABLE assignments RENAME COLUMN destination_official_id TO destination_official_ids_old;
+  END IF;
+END $$;
+
+-- Pastikan kolom destination_official_ids ada dengan tipe array
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS destination_official_ids TEXT[];
+
+-- Sinkronisasi kolom sub_activities
 ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS anggaran NUMERIC DEFAULT 0;
 ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS triwulan1 NUMERIC DEFAULT 0;
 ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS triwulan2 NUMERIC DEFAULT 0;
@@ -116,7 +128,7 @@ ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS triwulan4 NUMERIC DEFAULT 0;
 ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS spd TEXT;
 ALTER TABLE sub_activities ADD COLUMN IF NOT EXISTS budget_code TEXT;
 
--- HAPUS POLICY LAMA JIKA ADA DAN BUAT BARU
+-- Policy Akses Publik
 DROP POLICY IF EXISTS "Akses Publik Pegawai" ON employees;
 CREATE POLICY "Akses Publik Pegawai" ON employees FOR ALL USING (true) WITH CHECK (true);
 
@@ -138,5 +150,5 @@ CREATE POLICY "Akses Publik Sub Kegiatan" ON sub_activities FOR ALL USING (true)
 DROP POLICY IF EXISTS "Akses Publik SPT" ON assignments;
 CREATE POLICY "Akses Publik SPT" ON assignments FOR ALL USING (true) WITH CHECK (true);
 
--- Paksa refresh schema cache PostgREST agar kolom baru segera dikenali oleh API
+-- Paksa refresh schema cache
 NOTIFY pgrst, 'reload schema';

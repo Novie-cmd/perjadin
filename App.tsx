@@ -227,9 +227,19 @@ const App: React.FC = () => {
 
   const handleUpdateDestinationOfficials = async (assignmentId: string, officialIds: string[]) => {
     if (!supabase) return;
-    const { error } = await supabase.from('assignments').update({ destination_official_ids: officialIds }).eq('id', assignmentId);
-    if (error) alert(`Gagal update: ${error.message}. Pastikan kolom 'destination_official_ids' sudah ada di database Supabase Anda.`);
-    else await refreshData();
+    const { error } = await supabase.from('assignments').update({ 
+      destination_official_ids: officialIds 
+    }).eq('id', assignmentId);
+    
+    if (error) {
+      if (error.message.includes('column') || error.message.includes('destination_official_ids')) {
+        alert("PERINGATAN: Kolom database belum ada!\n\nSilakan buka SQL Editor di Supabase dan jalankan:\n\nALTER TABLE assignments ADD COLUMN destination_official_ids TEXT[];\nNOTIFY pgrst, 'reload schema';");
+      } else {
+        alert(`Gagal update: ${error.message}`);
+      }
+    } else {
+      await refreshData();
+    }
   };
 
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;

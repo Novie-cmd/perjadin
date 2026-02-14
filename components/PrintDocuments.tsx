@@ -81,29 +81,33 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
   if (!destOff) {
     return (
-      <div className="print-page bg-white p-12 text-center text-slate-400 font-bold">
-        Pilih Pejabat Tujuan terlebih dahulu pada menu Pencetakan.
+      <div className="print-page bg-white p-12 text-center text-slate-400 font-bold uppercase tracking-widest border-2 border-dashed border-slate-200">
+        Pilih Pejabat Tujuan Terlebih Dahulu Melalui Menu Pencetakan.
       </div>
     );
   }
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-black p-[20mm] flex items-center justify-center">
-      {/* Layout kotak kecil persis ukuran satu blok di SPD BELAKANG */}
-      <div className="w-[100mm] border border-black p-4 space-y-0 text-[11pt]">
-        <div className="grid grid-cols-[100px_10px_1fr] leading-normal">
+      {/* Container ini mensimulasikan satu kotak tanda tangan di SPD Belakang (BLK) */}
+      <div className="w-[100mm] border border-black p-5 space-y-0 text-[11pt] leading-snug">
+        <div className="grid grid-cols-[100px_15px_1fr] mb-3">
           <span>Tiba di</span><span>:</span><span className="font-bold">{assignment.destination}</span>
           <span>Pada tanggal</span><span>:</span><span className="font-bold">{formatDateID(assignment.startDate)}</span>
           <span className="align-top">Kepala</span><span className="align-top">:</span>
           <div className="flex flex-col">
             <span className="uppercase font-bold">{destOff.jabatan}</span>
-            <span className="font-bold uppercase leading-tight">{destOff.instansi}</span>
+            <span className="font-bold uppercase leading-none">{destOff.instansi}</span>
           </div>
         </div>
-        <div className="h-16"></div>
-        <div className="text-center pl-10">
-          <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
-          <p className="text-[11pt]">NIP. {destOff.nip}</p>
+        
+        {/* Ruang kosong untuk tanda tangan & stempel */}
+        <div className="h-20"></div>
+        
+        {/* Area Nama & NIP - Dibuat sejajar secara horizontal (centered) terhadap box */}
+        <div className="flex flex-col items-center justify-center text-center">
+           <p className="font-bold underline uppercase text-[12pt] mb-1">{destOff.name}</p>
+           <p className="text-[11pt]">NIP. {destOff.nip}</p>
         </div>
       </div>
     </div>
@@ -326,11 +330,11 @@ export const SPPDBackTemplate: React.FC<{
                   <span></span><span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
                   <span></span><span className="align-top">Kepala</span><span className="align-top">:</span>
                   <div className="flex flex-col">
-                    <span className="uppercase">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                    <span className="uppercase font-bold">{destOff?.jabatan || ''}</span>
+                    <span className="font-bold uppercase leading-none">{destOff?.instansi || ''}</span>
                   </div>
                 </div>
-                {isFilled && (<div className="mt-8 text-center pl-10"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
+                {isFilled && (<div className="mt-8 text-center"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
               <div className="p-2 min-h-[180px]">
                 <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
@@ -339,11 +343,11 @@ export const SPPDBackTemplate: React.FC<{
                   <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
                   <span className="align-top">Kepala</span><span className="align-top">:</span>
                   <div className="flex flex-col">
-                    <span className="uppercase">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                    <span className="uppercase font-bold">{destOff?.jabatan || ''}</span>
+                    <span className="font-bold uppercase leading-none">{destOff?.instansi || ''}</span>
                   </div>
                 </div>
-                {isFilled && (<div className="mt-8 text-center pl-10"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
+                {isFilled && (<div className="mt-8 text-center"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
             </div>
           );

@@ -32,7 +32,7 @@ export interface SKPDConfig {
   lokasi: string;
   kepalaNama: string;
   kepalaNip: string;
-  kepalaJabatan: string; 
+  kepalaJabatan: string;
   bendaharaNama: string;
   bendaharaNip: string;
   pptkNama: string;
@@ -97,7 +97,7 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialIds?: string[]; // Array untuk mendukung 2 tujuan
+  destinationOfficialIds?: string[];
 }
 
 export enum ViewMode {

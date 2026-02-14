@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { TravelAssignment, Employee, PrintType, SKPDConfig, Official, DestinationOfficial } from '../types';
-import { formatCurrency, numberToWords, formatDateID, formatNumber } from '../utils';
+import { TravelAssignment, Employee, SKPDConfig, Official, DestinationOfficial } from '../types';
+import { numberToWords, formatDateID, formatNumber } from '../utils';
 
 interface Props {
   assignment: TravelAssignment;
@@ -76,57 +76,34 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
 };
 
 export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials }) => {
-  const ids = assignment.destinationOfficialIds || [];
-  const list = ids.map(id => destinationOfficials.find(o => o.id === id)).filter(o => !!o);
+  const destId = (assignment.destinationOfficialIds || [])[0];
+  const destOff = destinationOfficials.find(o => o.id === destId);
 
-  if (list.length === 0) {
+  if (!destOff) {
     return (
-      <div className="print-page bg-white p-10 flex items-center justify-center border border-dashed border-red-500">
-        <p className="text-red-500 font-bold uppercase">Belum ada pejabat tujuan yang dipilih untuk SPT ini.</p>
+      <div className="print-page bg-white p-12 text-center text-slate-400 font-bold">
+        Pilih Pejabat Tujuan terlebih dahulu pada menu Pencetakan.
       </div>
     );
   }
 
   return (
-    <div className="print-page bg-white p-10 font-['Tahoma']">
-      <h2 className="text-center font-bold uppercase underline mb-12 text-[14pt]">Informasi Pejabat Pengesah Tujuan</h2>
-      
-      <div className="space-y-12">
-        {list.map((off, idx) => (
-          <div key={off.id} className="p-8 border-2 border-slate-200 rounded-3xl bg-slate-50/50">
-            <div className="flex items-center gap-4 mb-6 border-b border-slate-200 pb-3">
-              <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-black text-sm">{idx + 1}</span>
-              <h3 className="font-black text-slate-800 uppercase text-[11pt]">Pejabat Pengesah Lokasi {idx === 0 ? 'II (Tiba)' : 'III (Berangkat)'}</h3>
-            </div>
-            
-            <div className="space-y-4 text-[12pt] ml-4">
-              <div className="grid grid-cols-[140px_10px_1fr]">
-                <span className="text-slate-500 font-bold uppercase text-[10pt]">Jabatan</span>
-                <span className="font-bold">:</span>
-                <span className="font-black text-slate-800 uppercase">{off.jabatan}</span>
-              </div>
-              <div className="grid grid-cols-[140px_10px_1fr]">
-                <span className="text-slate-500 font-bold uppercase text-[10pt]">Instansi</span>
-                <span className="font-bold">:</span>
-                <span className="font-black text-blue-700 uppercase">{off.instansi}</span>
-              </div>
-              <div className="grid grid-cols-[140px_10px_1fr]">
-                <span className="text-slate-500 font-bold uppercase text-[10pt]">Nama Pejabat</span>
-                <span className="font-bold">:</span>
-                <span className="font-black text-slate-900 uppercase underline decoration-2 underline-offset-4">{off.name}</span>
-              </div>
-              <div className="grid grid-cols-[140px_10px_1fr]">
-                <span className="text-slate-500 font-bold uppercase text-[10pt]">NIP</span>
-                <span className="font-bold">:</span>
-                <span className="font-mono font-bold text-slate-700">{off.nip}</span>
-              </div>
-            </div>
+    <div className="print-page bg-white font-['Tahoma'] text-black p-[20mm] flex items-center justify-center">
+      <div className="w-[450px] border border-black p-6 space-y-1">
+        <div className="grid grid-cols-[100px_10px_1fr] text-[11pt]">
+          <span>Tiba di</span><span>:</span><span className="font-bold">{assignment.destination}</span>
+          <span>Pada tanggal</span><span>:</span><span className="font-bold">{formatDateID(assignment.startDate)}</span>
+          <span className="align-top">Kepala</span><span className="align-top">:</span>
+          <div className="flex flex-col">
+            <span className="uppercase font-bold">{destOff.jabatan}</span>
+            <span className="font-bold uppercase leading-tight">{destOff.instansi}</span>
           </div>
-        ))}
-      </div>
-      
-      <div className="mt-12 p-6 bg-amber-50 rounded-2xl border border-amber-100 italic text-[10pt] text-amber-700 text-center">
-        * Gunakan informasi di atas sebagai acuan pengisian stempel dan tanda tangan pada Lembar SPPD Halaman Belakang.
+        </div>
+        <div className="h-20"></div>
+        <div className="text-center pl-16">
+          <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
+          <p className="text-[11pt]">NIP. {destOff.nip}</p>
+        </div>
       </div>
     </div>
   );
@@ -305,12 +282,18 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
   );
 };
 
-export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials, destinationOfficials }) => {
+export const SPPDBackTemplate: React.FC<{ 
+  assignment: TravelAssignment; 
+  skpd: SKPDConfig; 
+  officials: Official[];
+  destinationOfficials: DestinationOfficial[];
+}> = ({ assignment, skpd, officials, destinationOfficials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
   const destIds = assignment.destinationOfficialIds || [];
-  
-  const dest1 = destinationOfficials.find(o => o.id === destIds[0]);
-  const dest2 = destinationOfficials.find(o => o.id === destIds[1]);
+  const getDestOfficial = (index: number) => {
+    const id = destIds[index];
+    return destinationOfficials.find(o => o.id === id);
+  };
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] relative leading-tight">
@@ -330,50 +313,40 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
       </div>
 
       <div className="space-y-0 border-t border-black">
-        {[
-          { id: 'II', dest: dest1 },
-          { id: 'III', dest: dest2 },
-          { id: 'IV', dest: null }
-        ].map(({ id, dest }, idx) => (
-          <div key={id} className="grid grid-cols-2 border-b border-black">
-            <div className="border-r border-black p-2 min-h-[160px]">
-              <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
-                <span className="font-bold">{id}.</span>
-                <span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : (idx === 1 ? '..................' : (skpd.lokasi || 'Mataram'))}</span>
-                <span></span>
-                <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
-                <span></span>
-                <span className="align-top">Kepala</span><span className="align-top">:</span>
-                <div className="flex flex-col text-center">
-                  <span className="font-bold text-[9pt] uppercase leading-none">{dest?.jabatan || ''}</span>
-                  <span className="font-bold uppercase text-[9pt] leading-none">{dest?.instansi || ''}</span>
+        {['II', 'III', 'IV'].map((id, idx) => {
+          const destOff = getDestOfficial(idx);
+          const isFilled = !!destOff;
+          return (
+            <div key={id} className="grid grid-cols-2 border-b border-black">
+              <div className="border-r border-black p-2 min-h-[180px]">
+                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
+                  <span className="font-bold">{id}.</span>
+                  <span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
+                  <span></span><span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
+                  <span></span><span className="align-top">Kepala</span><span className="align-top">:</span>
+                  <div className="flex flex-col">
+                    <span className="uppercase">{destOff?.jabatan || ''}</span>
+                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                  </div>
                 </div>
+                {isFilled && (<div className="mt-8 text-center pl-10"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
-              <div className="mt-4 text-center">
-                <div className="h-10"></div>
-                <p className="font-bold underline uppercase text-[10pt]">{dest?.name || ''}</p>
-                <p className="text-[9pt]">{dest ? `NIP. ${dest.nip}` : ''}</p>
+              <div className="p-2 min-h-[180px]">
+                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
+                  <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
+                  <span>Ke</span><span>:</span><span>{idx === 0 ? (skpd.lokasi || 'Mataram') : ''}</span>
+                  <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
+                  <span className="align-top">Kepala</span><span className="align-top">:</span>
+                  <div className="flex flex-col">
+                    <span className="uppercase">{destOff?.jabatan || ''}</span>
+                    <span className="font-bold uppercase leading-tight">{destOff?.instansi || ''}</span>
+                  </div>
+                </div>
+                {isFilled && (<div className="mt-8 text-center pl-10"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
             </div>
-            <div className="p-2 min-h-[160px]">
-              <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
-                <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : (idx === 1 ? '..................' : '')}</span>
-                <span>Ke</span><span>:</span><span>{idx === 0 ? '..................' : (idx === 1 ? (skpd.lokasi || 'Mataram') : '')}</span>
-                <span>Pada tanggal</span><span>:</span><span>{idx === 1 ? formatDateID(assignment.endDate) : ''}</span>
-                <span className="align-top">Kepala</span><span className="align-top">:</span>
-                <div className="flex flex-col text-center">
-                  <span className="font-bold text-[9pt] uppercase leading-none">{dest?.jabatan || ''}</span>
-                  <span className="font-bold uppercase text-[9pt] leading-none">{dest?.instansi || ''}</span>
-                </div>
-              </div>
-              <div className="mt-4 text-center">
-                <div className="h-10"></div>
-                <p className="font-bold underline uppercase text-[10pt]">{dest?.name || ''}</p>
-                <p className="text-[9pt]">{dest ? `NIP. ${dest.nip}` : ''}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-4">
@@ -387,11 +360,6 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
             <p>NIP. {kepala.nip}</p>
           </div>
         </div>
-      </div>
-      <div className="mt-4 pt-2 border-t border-black text-[10pt]">
-        <p className="font-bold uppercase">VI. CATATAN LAIN-LAIN</p>
-        <div className="h-4"></div>
-        <p className="font-bold uppercase tracking-tight leading-tight">VII. Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba serta Bendaharawan bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara mendapat rugi akibat kesalahan, kealpaannya.</p>
       </div>
     </div>
   );

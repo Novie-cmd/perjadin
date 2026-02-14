@@ -32,7 +32,7 @@ export interface SKPDConfig {
   lokasi: string;
   kepalaNama: string;
   kepalaNip: string;
-  kepalaJabatan: string; // Properti baru
+  kepalaJabatan: string; 
   bendaharaNama: string;
   bendaharaNip: string;
   pptkNama: string;
@@ -85,7 +85,7 @@ export interface TravelAssignment {
   purpose: string;
   origin: string;
   travelType: TravelType;
-  transportation: string; // Added transportation field
+  transportation: string;
   destination: string;
   startDate: string;
   endDate: string;
@@ -93,12 +93,11 @@ export interface TravelAssignment {
   selectedEmployeeIds: string[];
   costs: TravelCost[];
   signedAt: string;
-  // Fix: Changed from sign_date to signDate to fix 'property does not exist' errors across components
   signDate: string;
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialId?: string; // Reference to Pejabat Tujuan
+  destinationOfficialIds?: string[]; // Array untuk mendukung 2 tujuan
 }
 
 export enum ViewMode {
@@ -120,5 +119,6 @@ export enum PrintType {
   SPPD_BACK = 'SPPD_BACK',
   LAMPIRAN_III = 'LAMPIRAN_III',
   DAFTAR_PENERIMAAN = 'DAFTAR_PENERIMAAN',
-  KUITANSI = 'KUITANSI'
+  KUITANSI = 'KUITANSI',
+  PEJABAT_TUJUAN = 'PEJABAT_TUJUAN'
 }

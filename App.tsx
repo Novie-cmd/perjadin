@@ -19,13 +19,14 @@ import {
   SPPDBackTemplate,
   LampiranIIITemplate,
   KuitansiTemplate, 
-  DaftarPenerimaanTemplate 
+  DaftarPenerimaanTemplate,
+  PejabatTujuanTemplate
 } from './components/PrintDocuments';
 import { 
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
-  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
+  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins, UserCheck
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -67,12 +68,9 @@ const App: React.FC = () => {
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
   const [showDestManager, setShowDestManager] = useState(false);
 
-  // Kalkulasi Keuangan Real-time
   const financialStats = useMemo(() => {
-    // Explicitly typing the accumulator to Record<string, number> to fix unknown type issues
     const realizationMap = assignments.reduce<Record<string, number>>((acc, curr) => {
       const code = curr.subActivityCode;
-      // Explicitly typing the sum as number to avoid 'unknown' type error during addition
       const totalAssignmentCost = curr.costs.reduce<number>((sum, cost) => {
         const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
         const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
@@ -92,13 +90,11 @@ const App: React.FC = () => {
         return {
           ...s,
           realization,
-          // Ensuring spdValue and realization are numeric to avoid arithmetic operation errors
           sisaSpd: spdValue - realization,
           sisaAnggaran: s.anggaran - realization
         };
       });
 
-    // Explicitly typing reducers to fix line 108/109 errors where sum was inferred as unknown
     const totalAnggaran = subActivities.reduce<number>((sum, s) => sum + s.anggaran, 0);
     const totalSpd = subActivities.reduce<number>((sum, s) => sum + (Number(s.spd) || 0), 0);
     const totalRealisasi = Object.values(realizationMap).reduce<number>((sum, v) => sum + v, 0);
@@ -224,7 +220,7 @@ const App: React.FC = () => {
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
         startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
-        destinationOfficialId: a.destination_official_id, signDate: a.sign_date, signedAt: a.signed_at 
+        destinationOfficialIds: a.destination_official_ids || [], signDate: a.sign_date, signedAt: a.signed_at 
       })));
     } catch (err: any) {
       console.error(err);
@@ -246,15 +242,22 @@ const App: React.FC = () => {
       selected_employee_ids: data.selectedEmployeeIds, costs: data.costs, 
       signed_at: data.signedAt, sign_date: data.signDate, pptk_id: data.pptkId, 
       signer_id: data.signerId, bendahara_id: data.bendaharaId, 
-      destination_official_id: data.destinationOfficialId
+      destination_official_ids: data.destinationOfficialIds
     });
     if (error) alert(`Gagal menyimpan: ${error.message}`);
     else { await refreshData(); setViewMode(ViewMode.TRAVEL_LIST); }
   };
 
-  const handleUpdateDestinationOfficial = async (assignmentId: string, officialId: string) => {
+  const handleUpdateDestinationOfficial = async (assignmentId: string, index: number, officialId: string) => {
     if (!supabase) return;
-    const { error } = await supabase.from('assignments').update({ destination_official_id: officialId }).eq('id', assignmentId);
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    
+    const currentIds = [...(assignment.destinationOfficialIds || [])];
+    while (currentIds.length <= index) currentIds.push('');
+    currentIds[index] = officialId;
+
+    const { error } = await supabase.from('assignments').update({ destination_official_ids: currentIds }).eq('id', assignmentId);
     if (error) alert(`Gagal update: ${error.message}`);
     else await refreshData();
   };
@@ -306,6 +309,7 @@ const App: React.FC = () => {
           {printType === PrintType.LAMPIRAN_III && <LampiranIIITemplate {...props} />}
           {printType === PrintType.KUITANSI && <KuitansiTemplate {...props} />}
           {printType === PrintType.DAFTAR_PENERIMAAN && <DaftarPenerimaanTemplate {...props} />}
+          {printType === PrintType.PEJABAT_TUJUAN && <PejabatTujuanTemplate {...props} />}
         </div>
       </div>
     );
@@ -364,7 +368,8 @@ const App: React.FC = () => {
         </header>
 
         {viewMode === ViewMode.DASHBOARD && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Dashboard Content */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <Landmark className="text-blue-600 mb-3" size={20} />
@@ -428,32 +433,6 @@ const App: React.FC = () => {
                  </table>
                </div>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><PieChartIcon size={14} /> Komposisi SPT</h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <RePieChart>
-                    <Pie data={chartData.pieData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={70}>
-                      {chartData.pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                    </Pie>
-                    <Tooltip />
-                  </RePieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="lg:col-span-3 bg-white p-6 rounded-3xl border min-h-[300px]">
-                <h3 className="text-[10px] font-black uppercase mb-4 flex items-center gap-2"><Map size={14} /> Statistik Tujuan NTB</h3>
-                <ResponsiveContainer width="100%" height="80%">
-                  <ReBarChart layout="vertical" data={chartData.ntbDestStats}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 9 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#4f46e5" radius={[0, 4, 4, 0]} />
-                  </ReBarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </div>
         )}
 
@@ -465,13 +444,13 @@ const App: React.FC = () => {
               nama_skpd: cfg.namaSkpd,
               alamat: cfg.alamat,
               lokasi: cfg.lokasi,
-              kepala_nama: cfg.kepala_nama,
-              kepala_nip: cfg.kepala_nip,
-              kepala_jabatan: cfg.kepala_jabatan,
-              bendahara_nama: cfg.bendahara_nama,
-              bendahara_nip: cfg.bendahara_nip,
-              pptk_nama: cfg.pptk_nama,
-              pptk_nip: cfg.pptk_nip,
+              kepala_nama: cfg.kepalaNama,
+              kepala_nip: cfg.kepalaNip,
+              kepala_jabatan: cfg.kepalaJabatan,
+              bendahara_nama: cfg.bendaharaNama,
+              bendahara_nip: cfg.bendaharaNip,
+              pptk_nama: cfg.pptkNama,
+              pptk_nip: cfg.pptkNip,
               logo: cfg.logo
             });
             if (error) alert(error.message); else await refreshData();
@@ -503,7 +482,7 @@ const App: React.FC = () => {
         }} />}
 
         {viewMode === ViewMode.TRAVEL_LIST && (
-          <div className="bg-white rounded-3xl border overflow-hidden">
+          <div className="bg-white rounded-3xl border overflow-hidden shadow-sm">
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b">
                 <tr><th className="px-6 py-5">Nomor & Tanggal</th><th className="px-6 py-5">Tujuan</th><th className="px-6 py-5 text-right">Aksi</th></tr>
@@ -529,7 +508,18 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
+        {viewMode === ViewMode.ADD_TRAVEL && (
+          <TravelAssignmentForm 
+            employees={employees} 
+            masterCosts={masterCosts} 
+            subActivities={subActivities} 
+            officials={officials} 
+            destinationOfficials={destinationOfficials} 
+            initialData={editingAssignment || undefined} 
+            onSave={handleSaveAssignment} 
+            onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} 
+          />
+        )}
 
         {viewMode === ViewMode.MASTER_DATA && <MasterDataForm 
           masterCosts={masterCosts} 
@@ -567,42 +557,30 @@ const App: React.FC = () => {
               else await refreshData(); 
             } 
           }} 
-          onDeleteSub={async (c) => { 
-            if(supabase) { 
-              // Cek apakah digunakan di riwayat SPT
-              const { data } = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1);
-              if (data && data.length > 0) {
-                alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.');
-                return;
-              }
-              const { error } = await supabase.from('sub_activities').delete().eq('code', c); 
-              if (error) alert(`Gagal Hapus: ${error.message}`);
-              else await refreshData(); 
-            } 
-          }} 
+          onDeleteSub={async (c) => { if(supabase) { await supabase.from('sub_activities').delete().eq('code', c); await refreshData(); } }} 
           onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} 
         />}
 
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
 
         {viewMode === ViewMode.PRINT_MENU && (
-           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in duration-500">
              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
                <div className="flex items-center gap-3">
                  <Printer size={20} className="text-blue-600" />
-                 <h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3>
+                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-tight">Daftar SPT Siap Cetak</h3>
                </div>
-               <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300">
+               <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300 shadow-sm">
                  <Settings2 size={14}/> Kelola Pejabat Tujuan
                </button>
              </div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100">
+                 <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b border-slate-100">
                    <tr>
-                     <th className="px-6 py-4">Nomor & Tujuan</th>
-                     <th className="px-6 py-4">Pejabat Pengesah (Tujuan)</th>
-                     <th className="px-6 py-4 text-right">Opsi Cetak</th>
+                     <th className="px-6 py-5">Nomor & Tujuan</th>
+                     <th className="px-6 py-5">Pejabat Pengesah (Tujuan)</th>
+                     <th className="px-6 py-5 text-right">Opsi Cetak</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -613,10 +591,22 @@ const App: React.FC = () => {
                          <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
                        </td>
                        <td className="px-6 py-5">
-                         <select className="w-full max-w-[220px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white text-slate-700 shadow-sm" value={item.destinationOfficialId || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, e.target.value)}>
-                           <option value="">-- Pilih Pejabat Tujuan --</option>
-                           {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name} ({doff.jabatan})</option>))}
-                         </select>
+                         <div className="space-y-2">
+                           <div className="flex flex-col gap-1">
+                             <label className="text-[8px] font-black text-slate-400 uppercase">Tujuan 1 (Blok II)</label>
+                             <select className="w-full max-w-[200px] p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white" value={(item.destinationOfficialIds || [])[0] || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, 0, e.target.value)}>
+                               <option value="">-- Pilih Pejabat --</option>
+                               {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
+                             </select>
+                           </div>
+                           <div className="flex flex-col gap-1">
+                             <label className="text-[8px] font-black text-slate-400 uppercase">Tujuan 2 (Blok III)</label>
+                             <select className="w-full max-w-[200px] p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white" value={(item.destinationOfficialIds || [])[1] || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, 1, e.target.value)}>
+                               <option value="">-- Pilih Pejabat --</option>
+                               {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
+                             </select>
+                           </div>
+                         </div>
                        </td>
                        <td className="px-6 py-5 text-right">
                          <div className="flex gap-2 flex-wrap justify-end">
@@ -626,14 +616,16 @@ const App: React.FC = () => {
                              { label: 'SPD Blk', type: PrintType.SPPD_BACK, color: 'emerald' },
                              { label: 'Kuitansi', type: PrintType.KUITANSI, color: 'amber' },
                              { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
-                             { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
+                             { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' },
+                             { label: 'Pejabat', type: PrintType.PEJABAT_TUJUAN, color: 'indigo' }
                            ].map(btn => (
                              <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
                                btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : 
                                btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : 
                                btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : 
                                btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : 
-                               'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white'}`}>
+                               btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' :
+                               'text-indigo-600 border-indigo-100 bg-indigo-50 hover:bg-indigo-600 hover:text-white'}`}>
                                {btn.label}
                              </button>
                            ))}
@@ -650,7 +642,7 @@ const App: React.FC = () => {
            </div>
         )}
 
-        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} onDelete={async (id) => { if(supabase) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }} />}
+        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { const { error } = await supabase.from('destination_officials').upsert(off); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if(supabase && confirm('Hapus?')) { const { error } = await supabase.from('destination_officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
       </main>
     </div>
   );

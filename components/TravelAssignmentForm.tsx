@@ -39,7 +39,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       purpose: '',
       origin: 'Mataram',
       travelType: 'DALAM_DAERAH',
-      transportation: TRANSPORTATION_MODES[2], // Default to Kendaraan Dinas
+      transportation: TRANSPORTATION_MODES[2], 
       destination: '',
       startDate: '',
       endDate: '',
@@ -50,7 +50,8 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || ''
+      bendaharaId: defaultBendahara?.id || '',
+      destinationOfficialIds: ['', '']
     };
   });
 
@@ -166,6 +167,14 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     }));
   };
 
+  const updateDestinationOfficial = (index: number, val: string) => {
+    setFormData(prev => {
+      const current = [...(prev.destinationOfficialIds || ['', ''])];
+      current[index] = val;
+      return { ...prev, destinationOfficialIds: current };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.selectedEmployeeIds?.length) {
@@ -279,8 +288,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
              
              <div>
                <label className="block text-xs font-black text-slate-500 uppercase mb-2 flex items-center gap-1">
-                 <Truck size={12} className="text-blue-500" /> Transportasi
-               </label>
+                 <Truck size={12} className="text-blue-500" /> Transportasi</label>
                <select 
                  required
                  className="w-full p-2.5 border border-slate-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-100 font-black text-slate-800"
@@ -326,22 +334,40 @@ export const TravelAssignmentForm: React.FC<Props> = ({
         </div>
       </div>
 
-      {selectedMaster && (
-        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3 animate-in slide-in-from-left-4">
-          <Info className="text-blue-600 mt-0.5" size={20} />
-          <div className="text-xs">
-            <h4 className="font-black text-blue-800 uppercase mb-2">Informasi Referensi Biaya : {formData.destination}</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2 font-bold text-blue-700">
-               <div className="flex justify-between"><span>Harian:</span> <span>Rp {formatNumber(selectedMaster.dailyAllowance)}</span></div>
-               <div className="flex justify-between"><span>Akomodasi:</span> <span>Rp {formatNumber(selectedMaster.lodging)}</span></div>
-               <div className="flex justify-between"><span>BBM/Umum:</span> <span>Rp {formatNumber(selectedMaster.transportBbm)}</span></div>
-               <div className="flex justify-between"><span>Taksi:</span> <span>Rp {formatNumber(selectedMaster.taxi)}</span></div>
-               <div className="flex justify-between"><span>Kapal:</span> <span>Rp {formatNumber(selectedMaster.seaTransport)}</span></div>
-               <div className="flex justify-between"><span>Pesawat:</span> <span>Rp {formatNumber(selectedMaster.airTransport)}</span></div>
-            </div>
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight">
+          <MapPin className="text-red-600" size={20} /> Pengesah Lokasi Tujuan (Blok II & III)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-1">
+            <label className="block text-xs font-black text-slate-500 uppercase">Pengesah Lokasi 1 (Blok II)</label>
+            <select 
+              className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700"
+              value={(formData.destinationOfficialIds || [])[0] || ''}
+              onChange={e => updateDestinationOfficial(0, e.target.value)}
+            >
+              <option value="">-- Pilih Pejabat Tujuan 1 --</option>
+              {destinationOfficials.map(o => (
+                <option key={o.id} value={o.id}>{o.name} - {o.instansi}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-black text-slate-500 uppercase">Pengesah Lokasi 2 (Blok III) - Opsional</label>
+            <select 
+              className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700"
+              value={(formData.destinationOfficialIds || [])[1] || ''}
+              onChange={e => updateDestinationOfficial(1, e.target.value)}
+            >
+              <option value="">-- Pilih Pejabat Tujuan 2 --</option>
+              {destinationOfficials.map(o => (
+                <option key={o.id} value={o.id}>{o.name} - {o.instansi}</option>
+              ))}
+            </select>
           </div>
         </div>
-      )}
+        <p className="text-[10px] text-slate-400 font-bold mt-2 italic">* Data ini akan otomatis tercetak di SPPD Halaman Belakang.</p>
+      </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight">

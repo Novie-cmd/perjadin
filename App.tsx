@@ -28,10 +28,6 @@ import {
   BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
   PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
 } from 'lucide-react';
-import { 
-  PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
-  BarChart as ReBarChart, Bar, XAxis, YAxis, CartesianGrid
-} from 'recharts';
 import { formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
 
@@ -232,7 +228,7 @@ const App: React.FC = () => {
   const handleUpdateDestinationOfficials = async (assignmentId: string, officialIds: string[]) => {
     if (!supabase) return;
     const { error } = await supabase.from('assignments').update({ destination_official_ids: officialIds }).eq('id', assignmentId);
-    if (error) alert(`Gagal update: ${error.message}`);
+    if (error) alert(`Gagal update: ${error.message}. Pastikan kolom 'destination_official_ids' sudah ada di database Supabase Anda.`);
     else await refreshData();
   };
 

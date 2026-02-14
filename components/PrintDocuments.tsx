@@ -89,8 +89,9 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-black p-[20mm] flex items-center justify-center">
-      <div className="w-[450px] border border-black p-6 space-y-1">
-        <div className="grid grid-cols-[100px_10px_1fr] text-[11pt]">
+      {/* Layout kotak kecil persis ukuran satu blok di SPD BELAKANG */}
+      <div className="w-[100mm] border border-black p-4 space-y-0 text-[11pt]">
+        <div className="grid grid-cols-[100px_10px_1fr] leading-normal">
           <span>Tiba di</span><span>:</span><span className="font-bold">{assignment.destination}</span>
           <span>Pada tanggal</span><span>:</span><span className="font-bold">{formatDateID(assignment.startDate)}</span>
           <span className="align-top">Kepala</span><span className="align-top">:</span>
@@ -99,8 +100,8 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
             <span className="font-bold uppercase leading-tight">{destOff.instansi}</span>
           </div>
         </div>
-        <div className="h-20"></div>
-        <div className="text-center pl-16">
+        <div className="h-16"></div>
+        <div className="text-center pl-10">
           <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
           <p className="text-[11pt]">NIP. {destOff.nip}</p>
         </div>

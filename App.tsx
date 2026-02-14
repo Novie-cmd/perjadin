@@ -111,25 +111,6 @@ const App: React.FC = () => {
     };
   }, [subActivities, assignments]);
 
-  const chartData = useMemo(() => {
-    const typeCounts = assignments.reduce((acc, curr) => {
-      acc[curr.travelType] = (acc[curr.travelType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const pieData = [
-      { name: 'Dalam Daerah', value: typeCounts['DALAM_DAERAH'] || 0, color: '#4f46e5' },
-      { name: 'Luar Daerah', value: typeCounts['LUAR_DAERAH'] || 0, color: '#10b981' }
-    ];
-
-    const ntbDestStats = LIST_KOTA_NTB.map(city => {
-      const count = assignments.filter(a => a.destination === city).length;
-      return { name: city, count };
-    }).sort((a, b) => b.count - a.count);
-
-    return { pieData, ntbDestStats };
-  }, [assignments]);
-
   useEffect(() => {
     const savedUrl = localStorage.getItem('SB_URL');
     const savedKey = localStorage.getItem('SB_KEY');
@@ -369,7 +350,6 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.DASHBOARD && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Dashboard Content */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                 <Landmark className="text-blue-600 mb-3" size={20} />
@@ -438,20 +418,9 @@ const App: React.FC = () => {
 
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => {
           if (supabase) {
+            // Fix: Changed cfg.kepala_nip to cfg.kepalaNip as per the SKPDConfig type definition.
             const { error } = await supabase.from('skpd_config').upsert({ 
-              id: 'main', 
-              provinsi: cfg.provinsi,
-              nama_skpd: cfg.namaSkpd,
-              alamat: cfg.alamat,
-              lokasi: cfg.lokasi,
-              kepala_nama: cfg.kepalaNama,
-              kepala_nip: cfg.kepalaNip,
-              kepala_jabatan: cfg.kepalaJabatan,
-              bendahara_nama: cfg.bendaharaNama,
-              bendahara_nip: cfg.bendaharaNip,
-              pptk_nama: cfg.pptkNama,
-              pptk_nip: cfg.pptkNip,
-              logo: cfg.logo
+              id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo
             });
             if (error) alert(error.message); else await refreshData();
           }
@@ -509,56 +478,11 @@ const App: React.FC = () => {
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && (
-          <TravelAssignmentForm 
-            employees={employees} 
-            masterCosts={masterCosts} 
-            subActivities={subActivities} 
-            officials={officials} 
-            destinationOfficials={destinationOfficials} 
-            initialData={editingAssignment || undefined} 
-            onSave={handleSaveAssignment} 
-            onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} 
-          />
+          <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />
         )}
 
         {viewMode === ViewMode.MASTER_DATA && <MasterDataForm 
-          masterCosts={masterCosts} 
-          subActivities={subActivities} 
-          onSaveCost={async (c) => { 
-            if(supabase) { 
-              await supabase.from('master_costs').upsert({ 
-                destination: c.destination,
-                daily_allowance: c.dailyAllowance,
-                lodging: c.lodging,
-                transport_bbm: c.transportBbm,
-                sea_transport: c.seaTransport,
-                air_transport: c.airTransport,
-                taxi: c.taxi
-              }); 
-              await refreshData(); 
-            } 
-          }} 
-          onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} 
-          onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} 
-          onSaveSub={async (s) => { 
-            if(supabase) { 
-              const { error } = await supabase.from('sub_activities').upsert({ 
-                code: s.code,
-                name: s.name,
-                budget_code: s.budgetCode || '',
-                anggaran: s.anggaran || 0,
-                spd: s.spd || '0',
-                triwulan1: s.triwulan1 || 0,
-                triwulan2: s.triwulan2 || 0,
-                triwulan3: s.triwulan3 || 0,
-                triwulan4: s.triwulan4 || 0
-              }); 
-              if (error) alert(`Gagal Simpan: ${error.message}`);
-              else await refreshData(); 
-            } 
-          }} 
-          onDeleteSub={async (c) => { if(supabase) { await supabase.from('sub_activities').delete().eq('code', c); await refreshData(); } }} 
-          onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} 
+          masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging, transport_bbm: c.transport_bbm, sea_transport: c.seaTransport, air_transport: c.air_transport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { await supabase.from('sub_activities').delete().eq('code', c); await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} 
         />}
 
         {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
@@ -568,7 +492,7 @@ const App: React.FC = () => {
              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
                <div className="flex items-center gap-3">
                  <Printer size={20} className="text-blue-600" />
-                 <h3 className="font-black text-slate-800 text-xs uppercase tracking-tight">Daftar SPT Siap Cetak</h3>
+                 <h3 className="font-black text-slate-800 text-[11px] uppercase tracking-tight">Daftar SPT Siap Cetak</h3>
                </div>
                <button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300 shadow-sm">
                  <Settings2 size={14}/> Kelola Pejabat Tujuan
@@ -591,35 +515,27 @@ const App: React.FC = () => {
                          <div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div>
                        </td>
                        <td className="px-6 py-5">
-                         <div className="space-y-2">
-                           <div className="flex flex-col gap-1">
-                             <label className="text-[8px] font-black text-slate-400 uppercase">Tujuan 1 (Blok II)</label>
-                             <select className="w-full max-w-[200px] p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white" value={(item.destinationOfficialIds || [])[0] || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, 0, e.target.value)}>
-                               <option value="">-- Pilih Pejabat --</option>
-                               {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                             </select>
-                           </div>
-                           <div className="flex flex-col gap-1">
-                             <label className="text-[8px] font-black text-slate-400 uppercase">Tujuan 2 (Blok III)</label>
-                             <select className="w-full max-w-[200px] p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white" value={(item.destinationOfficialIds || [])[1] || ''} onChange={(e) => handleUpdateDestinationOfficial(item.id, 1, e.target.value)}>
-                               <option value="">-- Pilih Pejabat --</option>
-                               {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                             </select>
-                           </div>
-                         </div>
+                          <select 
+                            className="w-full max-w-[320px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white focus:ring-2 focus:ring-blue-100 outline-none" 
+                            value={(item.destinationOfficialIds || [])[0] || ''} 
+                            onChange={(e) => handleUpdateDestinationOfficial(item.id, 0, e.target.value)}
+                          >
+                            <option value="">-- Pilih Pejabat Tujuan --</option>
+                            {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
+                          </select>
                        </td>
                        <td className="px-6 py-5 text-right">
                          <div className="flex gap-2 flex-wrap justify-end">
                            {[
                              { label: 'SPT', type: PrintType.SPT, color: 'blue' },
-                             { label: 'SPD Dpn', type: PrintType.SPPD_FRONT, color: 'emerald' },
-                             { label: 'SPD Blk', type: PrintType.SPPD_BACK, color: 'emerald' },
-                             { label: 'Kuitansi', type: PrintType.KUITANSI, color: 'amber' },
-                             { label: 'Rincian', type: PrintType.LAMPIRAN_III, color: 'purple' },
-                             { label: 'Terima', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' },
-                             { label: 'Pejabat', type: PrintType.PEJABAT_TUJUAN, color: 'indigo' }
+                             { label: 'SPD DPN', type: PrintType.SPPD_FRONT, color: 'emerald' },
+                             { label: 'SPD BLK', type: PrintType.SPPD_BACK, color: 'emerald' },
+                             { label: 'KUITANSI', type: PrintType.KUITANSI, color: 'amber' },
+                             { label: 'RINCIAN', type: PrintType.LAMPIRAN_III, color: 'purple' },
+                             { label: 'TERIMA', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' },
+                             { label: 'PEJABAT', type: PrintType.PEJABAT_TUJUAN, color: 'indigo' }
                            ].map(btn => (
-                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                             <button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
                                btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : 
                                btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : 
                                btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : 
@@ -633,9 +549,6 @@ const App: React.FC = () => {
                        </td>
                      </tr>
                    ))}
-                   {assignments.length === 0 && (
-                     <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>
-                   )}
                  </tbody>
                </table>
              </div>

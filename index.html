@@ -10,6 +10,8 @@
       :root {
         --print-width: 210mm;
         --print-height: 297mm;
+        --print-width-ls: 297mm;
+        --print-height-ls: 210mm;
       }
 
       @media print {
@@ -26,13 +28,32 @@
           background: white !important;
           font-family: 'Tahoma', sans-serif !important;
         }
-        @page { size: A4; margin: 0mm; }
+        .landscape-page {
+          width: var(--print-width-ls);
+          min-height: var(--print-height-ls);
+          padding: 10mm 15mm;
+          margin: 0 auto;
+          page-break-after: always;
+          box-sizing: border-box;
+          background: white !important;
+          font-family: 'Tahoma', sans-serif !important;
+        }
+        @page { size: auto; margin: 0mm; }
       }
 
       @media screen {
         .print-page {
           width: var(--print-width);
           min-height: var(--print-height);
+          background: white;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          margin: 2rem auto;
+          padding: 10mm 15mm;
+          border: 1px solid #e5e7eb;
+        }
+        .landscape-page {
+          width: var(--print-width-ls);
+          min-height: var(--print-height-ls);
           background: white;
           box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           margin: 2rem auto;

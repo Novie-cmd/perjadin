@@ -27,7 +27,7 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, 
-  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers
+  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers, MapPin
 } from 'lucide-react';
 import { formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
@@ -84,9 +84,30 @@ const App: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
+    // Ambil daftar tujuan unik per sub kegiatan
+    const destinationMap = (assignments || []).reduce((acc: Record<string, Set<string>>, curr: TravelAssignment) => {
+      const code = curr.subActivityCode;
+      if (!acc[code]) acc[code] = new Set();
+      acc[code].add(curr.destination);
+      return acc;
+    }, {} as Record<string, Set<string>>);
+
     const totalAnggaran = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.anggaran) || 0), 0);
     const totalSpd = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.spd) || 0), 0);
     const totalRealisasi = Object.values(realizationMap).reduce((sum: number, v: number) => sum + (Number(v) || 0), 0);
+
+    const detailedStats = subActivities.map(sub => {
+      const realisasi = realizationMap[sub.code] || 0;
+      const spdVal = Number(sub.spd) || 0;
+      const anggaranVal = Number(sub.anggaran) || 0;
+      return {
+        ...sub,
+        realisasi,
+        sisaSpd: spdVal - realisasi,
+        sisaAnggaran: anggaranVal - realisasi,
+        destinations: Array.from(destinationMap[sub.code] || [])
+      };
+    });
 
     return {
       totals: {
@@ -95,7 +116,8 @@ const App: React.FC = () => {
         realisasi: totalRealisasi,
         sisaSpd: Number(totalSpd) - Number(totalRealisasi),
         sisaAnggaran: Number(totalAnggaran) - Number(totalRealisasi)
-      }
+      },
+      details: detailedStats
     };
   }, [subActivities, assignments]);
 
@@ -358,13 +380,86 @@ const App: React.FC = () => {
         </header>
 
         {viewMode === ViewMode.DASHBOARD && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><Landmark className="text-blue-600 mb-3" size={20} /><div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.anggaran)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Anggaran</div></div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><TrendingUp className="text-emerald-600 mb-3" size={20} /><div className="text-lg font-black text-slate-800 leading-tight">Rp {formatNumber(financialStats.totals.spd)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">SPD Akumulasi</div></div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><Coins className="text-indigo-600 mb-3" size={20} /><div className="text-lg font-black text-indigo-700 leading-tight">Rp {formatNumber(financialStats.totals.realisasi)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Total Realisasi</div></div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><Wallet className="text-amber-600 mb-3" size={20} /><div className="text-lg font-black text-amber-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaSpd)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa SPD</div></div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><AlertCircle className="text-rose-600 mb-3" size={20} /><div className="text-lg font-black text-rose-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaAnggaran)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa Anggaran</div></div>
+            </div>
+
+            {/* Tabel Realisasi Per Sub Kegiatan */}
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="text-blue-600" size={20} />
+                  <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Informasi Realisasi Per Sub Kegiatan</h3>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4 w-12">No</th>
+                      <th className="px-6 py-4">Sub Kegiatan</th>
+                      <th className="px-6 py-4 text-right">Anggaran</th>
+                      <th className="px-6 py-4 text-right">SPD</th>
+                      <th className="px-6 py-4 text-right">Realisasi</th>
+                      <th className="px-6 py-4 text-right">Sisa SPD</th>
+                      <th className="px-6 py-4 text-right">Sisa Anggaran</th>
+                      <th className="px-6 py-4">Daerah Tujuan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {financialStats.details.map((sub, idx) => (
+                      <tr key={sub.code} className="hover:bg-slate-50 transition group">
+                        <td className="px-6 py-5 text-[10px] font-bold text-slate-400">{idx + 1}</td>
+                        <td className="px-6 py-5">
+                          <div className="text-[10px] font-mono font-black text-blue-600">{sub.code}</div>
+                          <div className="text-xs font-bold text-slate-800 uppercase tracking-tight line-clamp-1">{sub.name}</div>
+                        </td>
+                        <td className="px-6 py-5 text-right font-bold text-slate-700 text-xs">Rp {formatNumber(sub.anggaran)}</td>
+                        <td className="px-6 py-5 text-right font-bold text-emerald-600 text-xs">Rp {formatNumber(Number(sub.spd) || 0)}</td>
+                        <td className="px-6 py-5 text-right font-black text-indigo-600 text-xs">Rp {formatNumber(sub.realisasi)}</td>
+                        <td className="px-6 py-5 text-right font-bold text-amber-600 text-xs">Rp {formatNumber(sub.sisaSpd)}</td>
+                        <td className="px-6 py-5 text-right font-bold text-rose-600 text-xs">Rp {formatNumber(sub.sisaAnggaran)}</td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-wrap gap-1">
+                            {sub.destinations.length > 0 ? (
+                              sub.destinations.map(dest => (
+                                <span key={dest} className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-tighter">
+                                  <MapPin size={8} /> {dest}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[9px] text-slate-300 italic">Belum ada perjalanan</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {financialStats.details.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic text-sm">Belum ada data sub kegiatan tersedia.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {financialStats.details.length > 0 && (
+                    <tfoot className="bg-slate-50/80 font-black border-t-2 border-slate-100">
+                      <tr>
+                        <td colSpan={2} className="px-6 py-4 text-xs uppercase text-slate-500">Total Akumulasi</td>
+                        <td className="px-6 py-4 text-right text-xs text-slate-800">Rp {formatNumber(financialStats.totals.anggaran)}</td>
+                        <td className="px-6 py-4 text-right text-xs text-emerald-700">Rp {formatNumber(financialStats.totals.spd)}</td>
+                        <td className="px-6 py-4 text-right text-xs text-indigo-700">Rp {formatNumber(financialStats.totals.realisasi)}</td>
+                        <td className="px-6 py-4 text-right text-xs text-amber-700">Rp {formatNumber(financialStats.totals.sisaSpd)}</td>
+                        <td className="px-6 py-4 text-right text-xs text-rose-700">Rp {formatNumber(financialStats.totals.sisaAnggaran)}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -450,7 +545,7 @@ const App: React.FC = () => {
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
-        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging, transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const data = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data.data && data.data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
+        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.daily_allowance, lodging: c.lodging, transport_bbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const data = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data.data && data.data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
         
         {viewMode === ViewMode.REPORT && (
           <ReportView 

@@ -27,9 +27,10 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, 
-  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers, MapPin
+  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers, MapPin, PlusCircle
 } from 'lucide-react';
-import { formatNumber } from './utils';
+// Import formatDateID to fix "Cannot find name 'formatDateID'" error
+import { formatNumber, formatDateID } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
 
 const App: React.FC = () => {
@@ -233,6 +234,7 @@ const App: React.FC = () => {
 
   const handleSaveAssignment = async (data: TravelAssignment) => {
     if (!supabase) return;
+    // Fix: access destinationOfficialIds from data (camelCase) to save to DB (snake_case)
     const { error } = await supabase.from('assignments').upsert({
       id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
       purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
@@ -464,9 +466,9 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
+        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptk_nip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
-        {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
+        {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkat_gol, jabatan: e.jabatan, representation_luar: e.representation_luar, representation_dalam: e.representation_dalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         
         {viewMode === ViewMode.DESTINATION_OFFICIAL_LIST && (
           <DestinationOfficialForm 
@@ -494,29 +496,80 @@ const App: React.FC = () => {
         )}
 
         {viewMode === ViewMode.TRAVEL_LIST && (
-          <div className="bg-white rounded-3xl border overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b"><tr><th className="px-6 py-5">Nomor & Tanggal</th><th className="px-6 py-5">Tujuan</th><th className="px-6 py-5 text-right">Aksi</th></tr></thead>
-              <tbody className="divide-y">{assignments.map(a => (
-                <tr key={a.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-5"><div className="font-black text-sm">{a.assignmentNumber}</div><div className="text-[10px] text-slate-400">{a.startDate}</div></td>
-                  <td className="px-6 py-5"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black">{a.destination}</span></td>
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => { setCurrentAssignForDest(a); setIsDestManagerOpen(true); }}
-                        className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg"
-                        title="Atur Pejabat Tujuan"
-                      >
-                        <UserSearch size={16}/>
-                      </button>
-                      <button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
-                      <button onClick={async () => { if(supabase && confirm('Hapus?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}</tbody>
-            </table>
+          <div className="space-y-4 animate-in fade-in duration-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="text-blue-600" size={24} />
+                <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">Daftar Riwayat SPT</h3>
+              </div>
+              <button 
+                onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition flex items-center gap-2 shadow-lg shadow-blue-200"
+              >
+                <PlusCircle size={18} /> Tambah SPT Baru
+              </button>
+            </div>
+            
+            <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-5">Nomor & Tanggal</th>
+                    <th className="px-6 py-5">Tujuan</th>
+                    <th className="px-6 py-5">Maksud Perjalanan</th>
+                    <th className="px-6 py-5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {assignments.map(a => (
+                    <tr key={a.id} className="hover:bg-slate-50 transition group">
+                      <td className="px-6 py-5">
+                        <div className="font-black text-sm text-slate-800">{a.assignmentNumber}</div>
+                        <div className="text-[10px] text-slate-400 font-bold">{formatDateID(a.startDate)}</div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tight">
+                          {a.destination}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="text-xs text-slate-600 font-medium line-clamp-1 italic">{a.purpose}</div>
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => { setCurrentAssignForDest(a); setIsDestManagerOpen(true); }}
+                            className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition"
+                            title="Atur Pejabat Tujuan"
+                          >
+                            <UserSearch size={16}/>
+                          </button>
+                          <button 
+                            onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} 
+                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit SPT"
+                          >
+                            <Edit2 size={16}/>
+                          </button>
+                          <button 
+                            onClick={async () => { if(supabase && confirm('Anda yakin ingin menghapus data ini?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} 
+                            className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                            title="Hapus SPT"
+                          >
+                            <Trash2 size={16}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {assignments.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic font-medium">Belum ada riwayat SPT. Klik tombol di atas untuk membuat.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

@@ -96,7 +96,7 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-2'; 
+          const verticalPadding = 'pt-7'; // Turun 5 spacing (dari pt-2 ke pt-7)
 
           return (
             <div key={label} className="grid grid-cols-2 min-h-[160px] border border-transparent">
@@ -314,7 +314,7 @@ export const SPPDBackTemplate: React.FC<{
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-2'; 
+          const verticalPadding = 'pt-7'; // Turun 5 spacing (dari pt-2 ke pt-7)
 
           return (
             <div key={label} className="grid grid-cols-2 border-b border-black min-h-[160px]">

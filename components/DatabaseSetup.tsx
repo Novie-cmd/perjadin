@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Database, Link, Key, CheckCircle, ExternalLink, Info, ShieldAlert } from 'lucide-react';
+import { Database, Link, Key, CheckCircle, ExternalLink, ShieldAlert } from 'lucide-react';
 
 interface Props {
   onConnect: (url: string, key: string) => void;
@@ -25,7 +25,7 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
             <Database size={32} />
           </div>
           <h1 className="text-2xl font-black text-white italic tracking-tighter">SIPD<span className="text-blue-500">LITE</span></h1>
-          <p className="text-slate-400 text-xs mt-2 font-medium leading-relaxed">Hubungkan ke database Supabase Anda untuk mulai mengelola Perjalanan Dinas secara pribadi.</p>
+          <p className="text-slate-400 text-xs mt-2 font-medium leading-relaxed">Masukkan konfigurasi database Supabase Anda untuk melanjutkan.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -57,23 +57,9 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
             />
           </div>
 
-          <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="p-1.5 bg-amber-500/10 text-amber-500 rounded-lg">
-                <Info size={16} />
-              </div>
-              <div>
-                <h4 className="text-[11px] font-black text-slate-300 uppercase tracking-tight">Cara mendapatkan kunci:</h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed mt-1">
-                  Buka dashboard Supabase > <strong>Settings</strong> > <strong>API</strong>. Salin <span className="text-blue-400">Project URL</span> dan <span className="text-blue-400">anon public key</span>. Jangan gunakan 'service_role key'.
-                </p>
-              </div>
-            </div>
-          </div>
-
           <button 
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest transition shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2 group"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest transition shadow-xl shadow-blue-900/40 flex items-center justify-center gap-2 group mt-4"
           >
             <CheckCircle size={18} className="group-hover:scale-110 transition" /> Hubungkan Sekarang
           </button>
@@ -81,7 +67,7 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
 
         <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col items-center gap-4">
            <div className="flex items-center gap-2 text-slate-600 text-[10px] font-bold uppercase">
-             <ShieldAlert size={12} /> Data aman secara lokal
+             <ShieldAlert size={12} /> Koneksi Aman & Terenkripsi
            </div>
            <a 
              href="https://supabase.com/dashboard" 
@@ -89,7 +75,7 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
              rel="noopener noreferrer"
              className="text-blue-500 hover:text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition"
            >
-             Buka Supabase Dashboard <ExternalLink size={10} />
+             Supabase Dashboard <ExternalLink size={10} />
            </a>
         </div>
       </div>

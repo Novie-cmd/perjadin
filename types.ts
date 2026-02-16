@@ -97,13 +97,14 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialIds?: string[]; // Field untuk menyimpan ID pejabat tujuan
+  destinationOfficialIds?: string[]; 
 }
 
 export enum ViewMode {
   DASHBOARD = 'DASHBOARD',
   EMPLOYEE_LIST = 'EMPLOYEE_LIST',
   OFFICIAL_LIST = 'OFFICIAL_LIST',
+  DESTINATION_OFFICIAL_LIST = 'DESTINATION_OFFICIAL_LIST',
   TRAVEL_LIST = 'TRAVEL_LIST',
   ADD_TRAVEL = 'ADD_TRAVEL',
   MASTER_DATA = 'MASTER_DATA',

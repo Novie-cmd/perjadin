@@ -13,10 +13,10 @@ interface Props {
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_TENGGARA_BARAT.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
-// KONFIGURASI JARAK UNTUK OVERLAY (Disesuaikan ke 145px untuk presisi baris Kepala)
+// KONFIGURASI JARAK UNTUK OVERLAY (Disesuaikan untuk presisi baris stempel/TTD)
 const BLOCK_STYLE = {
   minHeight: 'min-h-[220px]',
-  paddingTop: 'pt-[145px]', 
+  paddingTop: 'pt-[130px]', // Disesuaikan sedikit karena label Kepala naik ke grid
 };
 
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
@@ -91,7 +91,6 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
   return (
     <div className="print-page bg-transparent font-['Tahoma'] text-[10pt] relative leading-tight">
-      {/* Margin atas untuk melewati blok No SPPD di bagian belakang */}
       <div className="space-y-0 mt-[165px]">
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
@@ -101,27 +100,34 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
             <div key={label} className={`grid grid-cols-2 ${BLOCK_STYLE.minHeight}`}>
               {/* Sisi Kiri (Tiba di) */}
               <div className="p-2 flex flex-col h-full">
-                <div className={`${BLOCK_STYLE.paddingTop} flex`}>
-                  <div className="w-[100px] opacity-0">Kepala :</div>
-                  <div className="flex-1 text-center">
+                {/* Spacer grid atas untuk presisi */}
+                <div className="grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5 opacity-0">
+                   <span></span><span></span><span></span><span></span>
+                   <span></span><span></span><span></span><span></span>
+                   <span></span><span>Kepala</span><span>:</span><span></span>
+                </div>
+                <div className={`${BLOCK_STYLE.paddingTop} flex-1 text-center`}>
                     <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
-                    <p className="font-normal uppercase text-[8pt] leading-tight mb-8 text-black">{destOff.instansi}</p>
+                    <p className="font-normal uppercase text-[8pt] leading-tight mb-20 text-black">{destOff.instansi}</p>
                     <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
                     <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
-                  </div>
                 </div>
               </div>
 
               {/* Sisi Kanan (Berangkat dari) */}
               <div className="p-2 flex flex-col h-full">
-                <div className={`${BLOCK_STYLE.paddingTop} flex`}>
-                  <div className="w-[70px] opacity-0">Kepala :</div>
-                  <div className="flex-1 text-center">
+                {/* Spacer grid atas untuk presisi */}
+                <div className="grid grid-cols-[95px_10px_1fr] gap-y-0.5 opacity-0">
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                  <span></span><span></span><span></span>
+                  <span>Kepala</span><span>:</span><span></span>
+                </div>
+                <div className={`${BLOCK_STYLE.paddingTop} flex-1 text-center`}>
                     <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
-                    <p className="font-normal uppercase text-[8pt] leading-tight mb-8 text-black">{destOff.instansi}</p>
+                    <p className="font-normal uppercase text-[8pt] leading-tight mb-20 text-black">{destOff.instansi}</p>
                     <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
                     <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -267,9 +273,7 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
 
 export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials, destinationOfficials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
-  const destIds = assignment.destinationOfficialIds || [];
-  const getDestOfficial = (index: number) => destinationOfficials.find(o => o.id === (destIds[index] || ''));
-
+  
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[10pt] border border-black relative leading-tight text-black">
       <div className="flex justify-end mt-4 px-2">
@@ -289,50 +293,35 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
 
       <div className="space-y-0 border-t border-black">
         {['II.', 'III.', 'IV.'].map((label, idx) => {
-          const destOff = getDestOfficial(idx);
           return (
             <div key={label} className={`grid grid-cols-2 border-b border-black ${BLOCK_STYLE.minHeight}`}>
+              {/* Sisi Kiri (Tiba di) */}
               <div className="border-r border-black p-2 flex flex-col h-full">
                 <div className="grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5">
                   <span className="font-bold">{label}</span><span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
                   <span></span><span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
+                  <span></span><span className="font-bold">Kepala</span><span className="font-bold">:</span><span></span>
                 </div>
                 
                 <div className={`flex-1 flex ${BLOCK_STYLE.paddingTop} items-start`}>
-                   <div className="w-[100px] font-bold pl-[30px] pt-1">Kepala</div>
-                   <div className="w-[10px] font-bold pt-1">:</div>
                    <div className="flex-1 text-center">
-                     {destOff && (
-                       <>
-                         <p className="font-bold uppercase text-[9pt] leading-tight">{destOff.jabatan}</p>
-                         <p className="font-normal uppercase text-[8pt] leading-tight mb-8">{destOff.instansi}</p>
-                         <p className="font-bold underline uppercase text-[10pt]">{destOff.name}</p>
-                         <p className="text-[9pt]">NIP. {destOff.nip}</p>
-                       </>
-                     )}
+                     {/* Data Pejabat Tujuan akan dicetak lewat Overlay TTD TUJUAN */}
                    </div>
                 </div>
               </div>
 
+              {/* Sisi Kanan (Berangkat dari) */}
               <div className="p-2 flex flex-col h-full">
                 <div className="grid grid-cols-[95px_10px_1fr] gap-y-0.5">
-                  <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : (destOff?.instansi || '')}</span>
+                  <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
                   <span>Ke</span><span>:</span><span>{idx === 0 ? (skpd.lokasi || 'Mataram') : ''}</span>
                   <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
+                  <span className="font-bold">Kepala</span><span className="font-bold">:</span><span></span>
                 </div>
 
                 <div className={`flex-1 flex ${BLOCK_STYLE.paddingTop} items-start`}>
-                   <div className="w-[70px] font-bold pt-1">Kepala</div>
-                   <div className="w-[10px] font-bold pt-1">:</div>
                    <div className="flex-1 text-center">
-                     {destOff && (
-                        <>
-                          <p className="font-bold uppercase text-[9pt] leading-tight">{destOff.jabatan}</p>
-                          <p className="font-normal uppercase text-[8pt] leading-tight mb-8">{destOff.instansi}</p>
-                          <p className="font-bold underline uppercase text-[10pt]">{destOff.name}</p>
-                          <p className="text-[9pt]">NIP. {destOff.nip}</p>
-                        </>
-                      )}
+                     {/* Data Pejabat Tujuan akan dicetak lewat Overlay TTD TUJUAN */}
                    </div>
                 </div>
               </div>
@@ -344,7 +333,7 @@ export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials,
       <div className="mt-2 px-2 space-y-1">
         <div className="border-b border-black pb-1">
           <p className="text-justify text-[8.5pt] leading-relaxed">
-            V. Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
+            V. Telah diperiksa, with keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
           </p>
         </div>
         

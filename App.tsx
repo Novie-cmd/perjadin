@@ -13,6 +13,7 @@ import { SKPDForm } from './components/SKPDForm';
 import { ReportView } from './components/ReportView';
 import { DatabaseSetup } from './components/DatabaseSetup';
 import { DestinationOfficialManager } from './components/DestinationOfficialManager';
+import { DestinationOfficialForm } from './components/DestinationOfficialForm';
 import { 
   SPTTemplate, 
   SPPDFrontTemplate,
@@ -26,7 +27,7 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, 
-  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch
+  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers
 } from 'lucide-react';
 import { formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
@@ -37,6 +38,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInvalidApiKey, setIsInvalidApiKey] = useState(false);
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [officials, setOfficials] = useState<Official[]>([]);
@@ -60,10 +62,11 @@ const App: React.FC = () => {
   const [assignments, setAssignments] = useState<TravelAssignment[]>([]);
 
   const [activeAssignment, setActiveAssignment] = useState<TravelAssignment | null>(null);
+  const [activeDestOfficial, setActiveDestOfficial] = useState<DestinationOfficial | null>(null);
+  const [targetBlockIndex, setTargetBlockIndex] = useState<number>(0); // 0:II, 1:III, 2:IV
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
 
-  // State untuk Manager Pejabat Tujuan
   const [isDestManagerOpen, setIsDestManagerOpen] = useState(false);
   const [currentAssignForDest, setCurrentAssignForDest] = useState<TravelAssignment | null>(null);
 
@@ -117,26 +120,26 @@ const App: React.FC = () => {
   };
 
   const handleDisconnectDb = () => {
-    if (confirm('Putus koneksi database?')) {
-      localStorage.removeItem('SB_URL');
-      localStorage.removeItem('SB_KEY');
-      window.location.reload();
-    }
+    localStorage.removeItem('SB_URL');
+    localStorage.removeItem('SB_KEY');
+    window.location.reload();
   };
 
   const refreshData = async () => {
     if (!supabase) return;
     setLoading(true);
     setError(null);
+    setIsInvalidApiKey(false);
+    
     try {
       const [
-        { data: empData }, 
-        { data: offData }, 
-        { data: destOffData },
+        { data: empData, error: empErr }, 
+        { data: offData, error: offErr }, 
+        { data: destOffData, error: destErr },
         { data: skpdData, error: skpdErr }, 
-        { data: costData }, 
-        { data: subData }, 
-        { data: assignData }
+        { data: costData, error: costErr }, 
+        { data: subData, error: subErr }, 
+        { data: assignData, error: assignErr }
       ] = await Promise.all([
         supabase.from('employees').select('*').order('name'),
         supabase.from('officials').select('*').order('name'),
@@ -147,7 +150,14 @@ const App: React.FC = () => {
         supabase.from('assignments').select('*').order('created_at', { ascending: false })
       ]);
 
-      if (skpdErr && skpdErr.code !== 'PGRST116') throw skpdErr; 
+      const anyErr = empErr || offErr || destErr || (skpdErr && skpdErr.code !== 'PGRST116') || costErr || subErr || assignErr;
+      
+      if (anyErr) {
+        if (anyErr.message.toLowerCase().includes('apikey') || anyErr.message.toLowerCase().includes('invalid api key')) {
+          setIsInvalidApiKey(true);
+        }
+        throw anyErr;
+      }
 
       if (empData) setEmployees(empData.map(e => ({ 
         id: e.id, name: e.name, nip: e.nip, pangkatGol: e.pangkat_gol, 
@@ -184,14 +194,14 @@ const App: React.FC = () => {
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
-        startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
+        startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
         signDate: a.sign_date, signedAt: a.signed_at,
         destinationOfficialIds: a.destination_official_ids || []
       })));
     } catch (err: any) {
       console.error(err);
-      setError(`Database Error: ${err.message}`);
+      setError(err.message || 'Gagal memuat data dari database');
     } finally {
       setLoading(false);
     }
@@ -226,17 +236,87 @@ const App: React.FC = () => {
 
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
   if (loading) return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center flex-col"><RefreshCw className="animate-spin text-blue-400 mb-4" size={48} /><h2 className="font-black text-xl tracking-widest italic">MENGHUBUNGKAN...</h2></div>;
-  if (error) return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center"><div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-red-100"><div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><Database size={32} /></div><h2 className="text-xl font-black text-slate-800 mb-2 uppercase">Koneksi Bermasalah</h2><p className="text-slate-500 text-sm mb-6 leading-relaxed">{error}</p><div className="flex flex-col gap-2"><button onClick={refreshData} className="bg-blue-600 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2"><RefreshCw size={14} /> Coba Lagi</button><button onClick={handleDisconnectDb} className="text-slate-400 font-bold uppercase text-[10px] tracking-widest py-2">Reset Koneksi</button></div></div></div>;
+  
+  if (error) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center font-['Tahoma']">
+      <div className="max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-red-900/30 animate-in zoom-in-95 duration-300">
+        <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+          <AlertTriangle size={32} />
+        </div>
+        <h2 className="text-xl font-black text-white mb-2 uppercase tracking-tight">
+          {isInvalidApiKey ? 'Kunci API Tidak Valid' : 'Koneksi Bermasalah'}
+        </h2>
+        <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+          {isInvalidApiKey 
+            ? 'Supabase Anon Key yang Anda masukkan salah atau sudah kadaluarsa. Pastikan Anda menyalin "anon public key" dengan benar dari Project Settings > API.' 
+            : `Terjadi kesalahan saat menghubungi database: ${error}`}
+        </p>
+        <div className="flex flex-col gap-3">
+          <button onClick={refreshData} className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition shadow-lg">
+            <RefreshCw size={14} /> Coba Lagi
+          </button>
+          <button onClick={handleDisconnectDb} className="text-red-400 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest py-3 border border-red-900/30 rounded-xl transition">
+            Reset & Masukkan Kunci Baru
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
-  if (viewMode === ViewMode.PRINT_PREVIEW && activeAssignment) {
-    const props = { assignment: activeAssignment, employees, skpd: skpdConfig, officials, destinationOfficials };
+  if (viewMode === ViewMode.PRINT_PREVIEW && (activeAssignment || activeDestOfficial)) {
+    // Logic khusus Pejabat Luar dari Master Data
+    const dummyAssignment: TravelAssignment | null = activeDestOfficial ? {
+      id: 'dummy',
+      assignmentNumber: '..................',
+      destination: '..................',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date().toISOString().split('T')[0],
+      destinationOfficialIds: Array(3).fill('').map((_, i) => i === targetBlockIndex ? activeDestOfficial.id : ''),
+      selectedEmployeeIds: [],
+      costs: [],
+      origin: '',
+      purpose: '',
+      subActivityCode: '',
+      transportation: '',
+      travelType: 'DALAM_DAERAH',
+      durationDays: 0,
+      signDate: new Date().toISOString().split('T')[0],
+      signedAt: ''
+    } : null;
+
+    const props = { 
+      assignment: activeAssignment || dummyAssignment!, 
+      employees, 
+      skpd: skpdConfig, 
+      officials, 
+      destinationOfficials: activeDestOfficial ? [activeDestOfficial] : destinationOfficials 
+    };
+
     return (
       <div className="bg-gray-100 min-h-screen">
         <div className="no-print bg-white border-b p-4 sticky top-0 flex items-center justify-between z-50 shadow-sm">
-          <button onClick={() => setViewMode(ViewMode.PRINT_MENU)} className="flex items-center gap-2 font-bold text-slate-600 hover:text-blue-600 transition"><ChevronLeft size={20} /> Kembali</button>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-black uppercase text-slate-400">Preview: {printType}</span>
-            <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-blue-700 transition"><Printer size={18} /> Cetak</button>
+          <button onClick={() => setViewMode(activeDestOfficial ? ViewMode.DESTINATION_OFFICIAL_LIST : ViewMode.PRINT_MENU)} className="flex items-center gap-2 font-bold text-slate-600 hover:text-blue-600 transition"><ChevronLeft size={20} /> Kembali</button>
+          
+          <div className="flex items-center gap-6">
+            {activeDestOfficial && (
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                <span className="text-[10px] font-black uppercase text-slate-400 px-2 flex items-center gap-1"><Layers size={14}/> Pilih Posisi:</span>
+                {[0, 1, 2].map((idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setTargetBlockIndex(idx)}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${targetBlockIndex === idx ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'text-slate-500 hover:bg-white hover:text-blue-600'}`}
+                  >
+                    Bagian {idx === 0 ? 'II' : idx === 1 ? 'III' : 'IV'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="h-8 w-px bg-slate-200"></div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-black uppercase text-slate-400">Preview: {printType}</span>
+              <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:bg-blue-700 transition"><Printer size={18} /> Cetak</button>
+            </div>
           </div>
         </div>
         <div className="p-4 md:p-12 flex justify-center">
@@ -262,21 +342,19 @@ const App: React.FC = () => {
             { id: ViewMode.SKPD_CONFIG, label: 'Profil SKPD', icon: Building2 },
             { id: ViewMode.EMPLOYEE_LIST, label: 'Data Pegawai', icon: Users },
             { id: ViewMode.OFFICIAL_LIST, label: 'Pejabat Internal', icon: ShieldCheck },
+            { id: ViewMode.DESTINATION_OFFICIAL_LIST, label: 'Pejabat Luar', icon: UserPlus },
             { id: ViewMode.TRAVEL_LIST, label: 'Riwayat SPT', icon: Calendar },
             { id: ViewMode.MASTER_DATA, label: 'Data Master', icon: Database },
             { id: ViewMode.REPORT, label: 'Laporan', icon: BarChart3 },
             { id: ViewMode.PRINT_MENU, label: 'Pencetakan', icon: Printer },
           ].map(item => (<button key={item.id} onClick={() => setViewMode(item.id)} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all font-bold text-sm ${viewMode === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800'}`}><item.icon size={18} /> {item.label}</button>))}
-          <div className="pt-8 mt-8 border-t border-slate-800"><button onClick={handleDisconnectDb} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/10"><LogOut size={16} /> Putus Database</button></div>
+          <div className="pt-8 mt-8 border-t border-slate-800"><button onClick={() => { if(confirm('Putus koneksi database?')) handleDisconnectDb(); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 font-bold text-[10px] uppercase tracking-widest hover:bg-red-500/10"><LogOut size={16} /> Putus Database</button></div>
         </nav>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{viewMode.replace('_', ' ')}</h2><p className="text-slate-500 text-[10px] font-bold uppercase mt-1 flex items-center gap-1"><Building2 size={12} /> {skpdConfig.namaSkpd}</p></div>
-          <div className="flex items-center gap-3">
-            {viewMode === ViewMode.TRAVEL_LIST && (<button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-xl transition hover:bg-blue-700 flex items-center gap-2"><Plus size={18} /> Buat SPT Baru</button>)}
-          </div>
         </header>
 
         {viewMode === ViewMode.DASHBOARD && (
@@ -294,6 +372,31 @@ const App: React.FC = () => {
         {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
+        
+        {viewMode === ViewMode.DESTINATION_OFFICIAL_LIST && (
+          <DestinationOfficialForm 
+            officials={destinationOfficials} 
+            onSave={async (o) => {
+              if (supabase) {
+                const { error } = await supabase.from('destination_officials').upsert(o);
+                if (error) alert(error.message); else await refreshData();
+              }
+            }} 
+            onDelete={async (id) => {
+              if (supabase && confirm('Hapus data pejabat ini?')) {
+                const { error } = await supabase.from('destination_officials').delete().eq('id', id);
+                if (error) alert(error.message); else await refreshData();
+              }
+            }}
+            onPrint={(off) => {
+              setActiveDestOfficial(off);
+              setTargetBlockIndex(0); // Reset ke Bagian II
+              setActiveAssignment(null);
+              setPrintType(PrintType.PEJABAT_TUJUAN);
+              setViewMode(ViewMode.PRINT_PREVIEW);
+            }}
+          />
+        )}
 
         {viewMode === ViewMode.TRAVEL_LIST && (
           <div className="bg-white rounded-3xl border overflow-hidden">
@@ -378,9 +481,8 @@ const App: React.FC = () => {
                              { label: 'SPD BLK', type: PrintType.SPPD_BACK, color: 'emerald' },
                              { label: 'KUITANSI', type: PrintType.KUITANSI, color: 'amber' },
                              { label: 'RINCIAN', type: PrintType.LAMPIRAN_III, color: 'purple' },
-                             { label: 'TERIMA', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' },
-                             { label: 'TTD TUJUAN', type: PrintType.PEJABAT_TUJUAN, color: 'emerald' }
-                           ].map(btn => (<button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' : 'text-indigo-600 border-indigo-100 bg-indigo-50 hover:bg-indigo-600 hover:text-white'}`}>{btn.label}</button>))}
+                             { label: 'TERIMA', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' }
+                           ].map(btn => (<button key={btn.type} onClick={() => { setActiveDestOfficial(null); setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' : 'text-indigo-600 border-indigo-100 bg-indigo-50 hover:bg-indigo-600 hover:text-white'}`}>{btn.label}</button>))}
                          </div>
                        </td>
                      </tr>

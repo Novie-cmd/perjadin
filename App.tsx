@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   ViewMode, Employee, TravelAssignment, PrintType, 
-  MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial 
+  MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial, TravelCost 
 } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
 import { OfficialForm } from './components/OfficialForm';
@@ -65,15 +65,17 @@ const App: React.FC = () => {
   const [showDestManager, setShowDestManager] = useState(false);
 
   const financialStats = useMemo(() => {
-    const realizationMap = assignments.reduce((acc, curr) => {
+    // Explicitly type acc as Record<string, number> to fix "unknown" arithmetic error
+    const realizationMap = assignments.reduce((acc: Record<string, number>, curr: TravelAssignment) => {
       const code = curr.subActivityCode;
-      const totalAssignmentCost = curr.costs.reduce((sum, cost) => {
+      // Explicitly type sum as number and cost as TravelCost to fix inference issues
+      const totalAssignmentCost = curr.costs.reduce((sum: number, cost: TravelCost) => {
         const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
         const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
         const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
         const repres = (cost.representation || 0) * (cost.representationDays || 0);
         return sum + daily + lodging + transport + repres;
-      }, 0 as number);
+      }, 0);
       acc[code] = (acc[code] || 0) + totalAssignmentCost;
       return acc;
     }, {} as Record<string, number>);
@@ -91,9 +93,10 @@ const App: React.FC = () => {
         };
       });
 
-    const totalAnggaran = subActivities.reduce((sum, s) => sum + s.anggaran, 0 as number);
-    const totalSpd = subActivities.reduce((sum, s) => sum + (Number(s.spd) || 0), 0 as number);
-    const totalRealisasi = Object.values(realizationMap).reduce((sum, v) => sum + (v as number), 0 as number);
+    // Explicitly type sum as number to avoid arithmetic errors with unknown types
+    const totalAnggaran = subActivities.reduce((sum: number, s: SubActivity) => sum + s.anggaran, 0);
+    const totalSpd = subActivities.reduce((sum: number, s: SubActivity) => sum + (Number(s.spd) || 0), 0);
+    const totalRealisasi = Object.values(realizationMap).reduce((sum: number, v: number) => sum + v, 0);
 
     return {
       subSummary,
@@ -175,6 +178,7 @@ const App: React.FC = () => {
         bendaharaNip: skpdData.bendahara_nip, pptkNama: skpdData.pptk_nama, 
         pptkNip: skpdData.pptk_nip, logo: skpdData.logo 
       });
+      // Corrected air_transport typo to airTransport
       if (costData) setMasterCosts(costData.map(c => ({ 
         destination: c.destination, dailyAllowance: Number(c.daily_allowance), 
         lodging: Number(c.lodging), transportBbm: Number(c.transport_bbm), 
@@ -192,10 +196,11 @@ const App: React.FC = () => {
         triwulan3: Number(s.triwulan3 || 0),
         triwulan4: Number(s.triwulan4 || 0)
       })));
+      // Corrected duration_days typo to durationDays
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
-        startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
+        startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
         destinationOfficialIds: a.destination_official_ids || [], signDate: a.sign_date, signedAt: a.signed_at 
       })));

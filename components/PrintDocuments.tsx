@@ -109,12 +109,16 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
           return (
             <div key={id} className="grid grid-cols-2 border-b border-transparent">
               {/* SISI KIRI (Tiba di...) */}
-              <div className="border-r border-transparent p-2 min-h-[180px]">
-                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
-                  <span className={hide}>1</span><span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
-                  <span className={hide}>1</span><span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
-                  <span className={hide}>1</span><span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
-                  <span className={hide}></span><span className={`${hide} align-top`}>Kepala</span><span className={`${hide} align-top`}>:</span>
+              <div className="border-r border-transparent p-2 min-h-[220px]">
+                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5 items-start">
+                  <span className={`${hide} font-bold`}>{id}.</span>
+                  <span className={hide}>Tiba di</span><span className={hide}>:</span><span className={hide}></span>
+                  <span></span><span className={hide}>Pada tanggal</span><span className={hide}>:</span><span className={hide}></span>
+                  
+                  {/* Penyeimbang baris agar sejajar dengan kanan yang punya label "Berangkat dari" dan "Ke" */}
+                  <span></span><span className={hide}>Ke</span><span className={hide}>:</span><span className={hide}></span>
+
+                  <span></span><span className={`${hide} align-top`}>Kepala</span><span className={`${hide} align-top`}>:</span>
                   <div className="flex flex-col">
                     <span className={`uppercase font-bold ${isBlock2 ? 'visible' : hide}`}>{destOff.jabatan}</span>
                     <span className={`uppercase font-normal text-[12pt] whitespace-nowrap leading-none mt-1 ${isBlock2 ? 'visible' : hide}`}>
@@ -122,19 +126,20 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
                     </span>
                   </div>
                 </div>
-                <div className={`mt-8 text-center ${isBlock2 ? 'visible' : hide}`}>
-                  <div className="h-20"></div> {/* Tinggi spacer ditingkatkan agar lebih turun */}
+                <div className={`mt-4 text-center ${isBlock2 ? 'visible' : hide}`}>
+                  <div className="h-24"></div> {/* Spacer area tanda tangan */}
                   <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
                   <p className="text-[11pt]">NIP. {destOff.nip}</p>
                 </div>
               </div>
 
               {/* SISI KANAN (Berangkat dari...) */}
-              <div className="p-2 min-h-[180px]">
-                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
-                  <span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
-                  <span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
-                  <span className={hide}>a</span><span className={hide}>b</span><span className={hide}>c</span>
+              <div className="p-2 min-h-[220px]">
+                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5 items-start">
+                  <span className={hide}>Berangkat dari</span><span className={hide}>:</span><span className={hide}></span>
+                  <span className={hide}>Ke</span><span className={hide}>:</span><span className={hide}></span>
+                  <span className={hide}>Pada tanggal</span><span className={hide}>:</span><span className={hide}></span>
+                  
                   <span className={`${hide} align-top`}>Kepala</span><span className={`${hide} align-top`}>:</span>
                   <div className="flex flex-col">
                     <span className={`uppercase font-bold ${isBlock2 ? 'visible' : hide}`}>{destOff.jabatan}</span>
@@ -143,8 +148,8 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
                     </span>
                   </div>
                 </div>
-                <div className={`mt-8 text-center ${isBlock2 ? 'visible' : hide}`}>
-                  <div className="h-20"></div> {/* Tinggi spacer ditingkatkan disamakan dengan kiri */}
+                <div className={`mt-4 text-center ${isBlock2 ? 'visible' : hide}`}>
+                  <div className="h-24"></div> {/* Spacer area tanda tangan disamakan */}
                   <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
                   <p className="text-[11pt]">NIP. {destOff.nip}</p>
                 </div>

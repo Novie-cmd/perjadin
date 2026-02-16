@@ -65,38 +65,36 @@ const App: React.FC = () => {
   const [showDestManager, setShowDestManager] = useState(false);
 
   const financialStats = useMemo(() => {
-    // Explicitly type acc as Record<string, number> to fix "unknown" arithmetic error
-    const realizationMap = assignments.reduce((acc: Record<string, number>, curr: TravelAssignment) => {
+    const realizationMap = (assignments || []).reduce((acc: Record<string, number>, curr: TravelAssignment) => {
       const code = curr.subActivityCode;
-      // Explicitly type sum as number and cost as TravelCost to fix inference issues
-      const totalAssignmentCost = curr.costs.reduce((sum: number, cost: TravelCost) => {
-        const daily = (cost.dailyAllowance || 0) * (cost.dailyDays || 0);
-        const lodging = (cost.lodging || 0) * (cost.lodgingDays || 0);
-        const transport = (cost.transportBbm || 0) + (cost.seaTransport || 0) + (cost.airTransport || 0) + (cost.taxi || 0);
-        const repres = (cost.representation || 0) * (cost.representationDays || 0);
+      const totalAssignmentCost = (curr.costs || []).reduce((sum: number, cost: TravelCost) => {
+        const daily = (Number(cost.dailyAllowance) || 0) * (Number(cost.dailyDays) || 0);
+        const lodging = (Number(cost.lodging) || 0) * (Number(cost.lodgingDays) || 0);
+        const transport = (Number(cost.transportBbm) || 0) + (Number(cost.seaTransport) || 0) + (Number(cost.airTransport) || 0) + (Number(cost.taxi) || 0);
+        const repres = (Number(cost.representation) || 0) * (Number(cost.representationDays) || 0);
         return sum + daily + lodging + transport + repres;
       }, 0);
-      acc[code] = (acc[code] || 0) + totalAssignmentCost;
+      acc[code] = (Number(acc[code]) || 0) + Number(totalAssignmentCost);
       return acc;
     }, {} as Record<string, number>);
 
-    const subSummary = subActivities
-      .filter(s => s.anggaran > 0)
+    const subSummary = (subActivities || [])
+      .filter(s => Number(s.anggaran) > 0)
       .map(s => {
-        const realization = realizationMap[s.code] || 0;
+        const realization = Number(realizationMap[s.code]) || 0;
         const spdValue = Number(s.spd) || 0;
+        const anggaranValue = Number(s.anggaran) || 0;
         return {
           ...s,
           realization,
           sisaSpd: spdValue - realization,
-          sisaAnggaran: s.anggaran - realization
+          sisaAnggaran: anggaranValue - realization
         };
       });
 
-    // Explicitly type sum as number to avoid arithmetic errors with unknown types
-    const totalAnggaran = subActivities.reduce((sum: number, s: SubActivity) => sum + s.anggaran, 0);
-    const totalSpd = subActivities.reduce((sum: number, s: SubActivity) => sum + (Number(s.spd) || 0), 0);
-    const totalRealisasi = Object.values(realizationMap).reduce((sum: number, v: number) => sum + v, 0);
+    const totalAnggaran = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.anggaran) || 0), 0);
+    const totalSpd = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.spd) || 0), 0);
+    const totalRealisasi = Object.values(realizationMap).reduce((sum: number, v: number) => sum + (Number(v) || 0), 0);
 
     return {
       subSummary,
@@ -104,8 +102,8 @@ const App: React.FC = () => {
         anggaran: totalAnggaran,
         spd: totalSpd,
         realisasi: totalRealisasi,
-        sisaSpd: totalSpd - totalRealisasi,
-        sisaAnggaran: totalAnggaran - totalRealisasi
+        sisaSpd: Number(totalSpd) - Number(totalRealisasi),
+        sisaAnggaran: Number(totalAnggaran) - Number(totalRealisasi)
       }
     };
   }, [subActivities, assignments]);
@@ -178,7 +176,6 @@ const App: React.FC = () => {
         bendaharaNip: skpdData.bendahara_nip, pptkNama: skpdData.pptk_nama, 
         pptkNip: skpdData.pptk_nip, logo: skpdData.logo 
       });
-      // Corrected air_transport typo to airTransport
       if (costData) setMasterCosts(costData.map(c => ({ 
         destination: c.destination, dailyAllowance: Number(c.daily_allowance), 
         lodging: Number(c.lodging), transportBbm: Number(c.transport_bbm), 
@@ -196,7 +193,6 @@ const App: React.FC = () => {
         triwulan3: Number(s.triwulan3 || 0),
         triwulan4: Number(s.triwulan4 || 0)
       })));
-      // Corrected duration_days typo to durationDays
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
@@ -346,23 +342,44 @@ const App: React.FC = () => {
              <div className="p-6 border-b flex items-center justify-between bg-slate-50/50"><div className="flex items-center gap-3"><Printer size={20} className="text-blue-600" /><h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3></div><button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300"><Settings2 size={14}/> Kelola Pejabat Tujuan</button></div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100"><tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4">Pejabat Tujuan</th><th className="px-6 py-4 text-right">Opsi Cetak</th></tr></thead>
+                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100"><tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4">Pejabat Tujuan (SPD Belakang)</th><th className="px-6 py-4 text-right">Opsi Cetak</th></tr></thead>
                  <tbody className="divide-y divide-slate-100">
                    {assignments.map(item => (
                      <tr key={item.id} className="hover:bg-slate-50 transition">
                        <td className="px-6 py-5"><div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div><div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div></td>
                        <td className="px-6 py-5">
-                          <select 
-                            className="w-full max-w-[280px] p-2 border border-slate-200 rounded-lg text-[10px] font-bold bg-white text-slate-700 shadow-sm" 
-                            value={(item.destinationOfficialIds || [])[0] || ''} 
-                            onChange={(e) => {
-                              const currentIds = [e.target.value, '', ''];
-                              handleUpdateDestinationOfficials(item.id, currentIds);
-                            }}
-                          >
-                            <option value="">-- Pilih Pejabat Tujuan --</option>
-                            {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                          </select>
+                          <div className="flex flex-col gap-2 max-w-[320px]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[8px] font-black text-slate-400 w-12 shrink-0 uppercase tracking-tighter">Blok II :</span>
+                              <select 
+                                className="flex-1 p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white text-slate-700 shadow-sm" 
+                                value={(item.destinationOfficialIds || [])[0] || ''} 
+                                onChange={(e) => {
+                                  const currentIds = [...(item.destinationOfficialIds || ['', '', ''])];
+                                  currentIds[0] = e.target.value;
+                                  handleUpdateDestinationOfficials(item.id, currentIds);
+                                }}
+                              >
+                                <option value="">-- Tujuan 1 (Utama) --</option>
+                                {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
+                              </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[8px] font-black text-slate-400 w-12 shrink-0 uppercase tracking-tighter">Blok III :</span>
+                              <select 
+                                className="flex-1 p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white text-slate-700 shadow-sm" 
+                                value={(item.destinationOfficialIds || [])[1] || ''} 
+                                onChange={(e) => {
+                                  const currentIds = [...(item.destinationOfficialIds || ['', '', ''])];
+                                  currentIds[1] = e.target.value;
+                                  handleUpdateDestinationOfficials(item.id, currentIds);
+                                }}
+                              >
+                                <option value="">-- Tujuan 2 (Opsional) --</option>
+                                {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
+                              </select>
+                            </div>
+                          </div>
                        </td>
                        <td className="px-6 py-5 text-right">
                          <div className="flex gap-2 flex-wrap justify-end">

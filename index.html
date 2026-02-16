@@ -8,17 +8,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
-        --legal-width: 215.9mm;
-        --legal-height: 330mm;
+        --print-width: 210mm;
+        --print-height: 297mm;
       }
 
       @media print {
         .no-print { display: none !important; }
         body { background: white; margin: 0; padding: 0; color: black !important; }
         .print-page { 
-          width: var(--legal-width); 
-          min-height: var(--legal-height); 
-          padding: 15mm; 
+          width: var(--print-width); 
+          min-height: var(--print-height); 
+          padding: 10mm 15mm; 
           margin: 0 auto;
           page-break-after: always;
           box-sizing: border-box;
@@ -26,17 +26,17 @@
           background: white !important;
           font-family: 'Tahoma', sans-serif !important;
         }
-        @page { size: legal; margin: 0mm; }
+        @page { size: A4; margin: 0mm; }
       }
 
       @media screen {
         .print-page {
-          width: var(--legal-width);
-          min-height: var(--legal-height);
+          width: var(--print-width);
+          min-height: var(--print-height);
           background: white;
           box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           margin: 2rem auto;
-          padding: 15mm;
+          padding: 10mm 15mm;
           border: 1px solid #e5e7eb;
         }
       }

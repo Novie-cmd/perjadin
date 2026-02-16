@@ -11,7 +11,7 @@ interface Props {
   destinationOfficials: DestinationOfficial[];
 }
 
-const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_Tenggara_Barat.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
+const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_TENGGARA_BARAT.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
   const provinsiValue = skpd.provinsi?.trim() || '';
@@ -76,94 +76,75 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
 };
 
 /**
- * Template Pejabat Tujuan KHUSUS (Struktural SPD BLK)
- * Digunakan untuk mencetak data pejabat tujuan di atas formulir fisik.
+ * Template Pejabat Tujuan KHUSUS (OVERLAY CETAK ULANG)
+ * Hanya menampilkan data tanda tangan (Data saja, tanpa label Tiba di/Berangkat dari)
  */
-export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials }) => {
-  const destId = (assignment.destinationOfficialIds || [])[0];
-  const destOff = destinationOfficials.find(o => o.id === destId);
-
-  if (!destOff) {
-    return (
-      <div className="print-page bg-white p-12 text-center text-slate-400 font-bold uppercase border-2 border-dashed border-slate-200">
-        Pilih Pejabat Tujuan Terlebih Dahulu Melalui Menu Pencetakan.
-      </div>
-    );
-  }
-
-  const hide = "invisible";
+export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials, skpd, officials }) => {
+  const destIds = assignment.destinationOfficialIds || [];
+  const getDestOfficial = (index: number) => destinationOfficials.find(o => o.id === (destIds[index] || ''));
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-[11pt] p-[15mm] relative leading-tight">
-      {/* Bagian Atas - Hidden */}
-      <div className={`flex justify-end ${hide}`}>
-        <div className="w-[300px] space-y-0.5 mb-4">
-          <div className="grid grid-cols-[100px_10px_1fr]"><span></span><span></span><span></span></div>
-          <div className="pt-4 text-center"><div className="h-16"></div></div>
+    <div className="print-page bg-transparent font-['Tahoma'] text-[10pt] relative leading-tight">
+      <div className="flex justify-end mt-4 invisible">
+        <div className="w-[340px] space-y-0.5 mb-8 border border-transparent">
+          <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span>VALUE</span></div>
+          <div className="pt-8 text-center"><p className="mb-14">Jabatan</p><p>Nama</p></div>
         </div>
       </div>
 
-      <div className="space-y-0 border-t border-transparent">
-        {['II', 'III', 'IV'].map((id, idx) => {
-          const isBlock2 = idx === 0;
-          return (
-            <div key={id} className="grid grid-cols-2 border-b border-transparent">
-              {/* SISI KIRI (Tiba di...) */}
-              <div className="border-r border-transparent p-2 min-h-[220px]">
-                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5 items-start">
-                  <span className={`${hide} font-bold`}>{id}.</span>
-                  <span className={hide}>Tiba di</span><span className={hide}>:</span><span className={hide}></span>
-                  <span></span><span className={hide}>Pada tanggal</span><span className={hide}>:</span><span className={hide}></span>
-                  
-                  {/* Penyeimbang baris agar sejajar dengan kanan yang punya label "Berangkat dari" dan "Ke" */}
-                  <span></span><span className={hide}>Ke</span><span className={hide}>:</span><span className={hide}></span>
+      <div className="space-y-0">
+        {['II.', 'III.', 'IV.'].map((label, idx) => {
+          const destOff = getDestOfficial(idx);
+          const isFilled = !!destOff;
+          const verticalPadding = 'pt-2'; 
 
-                  <span></span><span className={`${hide} align-top`}>Kepala</span><span className={`${hide} align-top`}>:</span>
-                  <div className="flex flex-col">
-                    <span className={`uppercase font-bold ${isBlock2 ? 'visible' : hide}`}>{destOff.jabatan}</span>
-                    <span className={`uppercase font-normal text-[12pt] whitespace-nowrap leading-none mt-1 ${isBlock2 ? 'visible' : hide}`}>
-                      {destOff.instansi}
-                    </span>
+          return (
+            <div key={label} className="grid grid-cols-2 min-h-[160px] border border-transparent">
+              {/* Sisi Kiri: Tiba di */}
+              <div className="p-2 flex flex-col h-full">
+                <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
+                  <span className="invisible">{label}</span>
+                  <span className="invisible">Tiba di</span><span className="invisible">:</span><span className="invisible">VALUE</span>
+                  <span className="invisible"></span>
+                  <span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
+                  
+                  <span></span><span className="invisible leading-tight mt-1">Kepala</span><span className="invisible leading-tight mt-1">:</span>
+                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
+                    {isFilled && (
+                      <div className="flex flex-col items-center">
+                        <p className="font-bold uppercase text-[9.5pt] leading-tight text-black">{destOff.jabatan}</p>
+                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7 text-black">{destOff.instansi}</p>
+                        <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
+                        <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className={`mt-4 text-center ${isBlock2 ? 'visible' : hide}`}>
-                  <div className="h-24"></div> {/* Spacer area tanda tangan */}
-                  <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
-                  <p className="text-[11pt]">NIP. {destOff.nip}</p>
                 </div>
               </div>
 
-              {/* SISI KANAN (Berangkat dari...) */}
-              <div className="p-2 min-h-[220px]">
-                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5 items-start">
-                  <span className={hide}>Berangkat dari</span><span className={hide}>:</span><span className={hide}></span>
-                  <span className={hide}>Ke</span><span className={hide}>:</span><span className={hide}></span>
-                  <span className={hide}>Pada tanggal</span><span className={hide}>:</span><span className={hide}></span>
+              {/* Sisi Kanan: Berangkat dari */}
+              <div className="p-2 flex flex-col h-full">
+                <div className={`${verticalPadding} grid grid-cols-[95px_10px_1fr] gap-y-0.5`}>
+                  <span className="invisible">Berangkat dari</span><span className="invisible">:</span><span className="invisible">VALUE</span>
+                  <span className="invisible">Ke</span><span className="invisible">:</span><span className="invisible">VALUE</span>
+                  <span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
                   
-                  <span className={`${hide} align-top`}>Kepala</span><span className={`${hide} align-top`}>:</span>
-                  <div className="flex flex-col">
-                    <span className={`uppercase font-bold ${isBlock2 ? 'visible' : hide}`}>{destOff.jabatan}</span>
-                    <span className={`uppercase font-normal text-[12pt] whitespace-nowrap leading-none mt-1 ${isBlock2 ? 'visible' : hide}`}>
-                      {destOff.instansi}
-                    </span>
+                  <span className="invisible leading-tight mt-1">Kepala</span><span className="invisible leading-tight mt-1">:</span>
+                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
+                    {isFilled && (
+                      <div className="flex flex-col items-center">
+                        <p className="font-bold uppercase text-[9.5pt] leading-tight text-black">{destOff.jabatan}</p>
+                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7 text-black">{destOff.instansi}</p>
+                        <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
+                        <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <div className={`mt-4 text-center ${isBlock2 ? 'visible' : hide}`}>
-                  <div className="h-24"></div> {/* Spacer area tanda tangan disamakan */}
-                  <p className="font-bold underline uppercase text-[12pt]">{destOff.name}</p>
-                  <p className="text-[11pt]">NIP. {destOff.nip}</p>
                 </div>
               </div>
             </div>
           );
         })}
-      </div>
-
-      <div className={`mt-4 ${hide}`}>
-        <div className="grid grid-cols-2 mt-4">
-          <div></div>
-          <div className="text-center"><div className="h-16"></div></div>
-        </div>
       </div>
     </div>
   );
@@ -263,7 +244,7 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt] p-[15mm] border border-black relative">
+    <div className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt] border border-black relative">
       <Header skpd={skpd} />
       <div className="flex justify-end mb-2">
         <div className="w-1/2 text-[10pt]">
@@ -310,74 +291,104 @@ export const SPPDBackTemplate: React.FC<{
 }> = ({ assignment, skpd, officials, destinationOfficials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
   const destIds = assignment.destinationOfficialIds || [];
-  const getDestOfficial = (index: number) => {
-    const id = destIds[index];
-    return destinationOfficials.find(o => o.id === id);
-  };
+  const getDestOfficial = (index: number) => destinationOfficials.find(o => o.id === (destIds[index] || ''));
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] relative leading-tight">
-      <div className="flex justify-end">
-        <div className="w-[300px] space-y-0.5 mb-4">
-          <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span>{assignment.assignmentNumber}</span></div>
+    <div className="print-page bg-white font-['Tahoma'] text-[10pt] border border-black relative leading-tight">
+      <div className="flex justify-end mt-4 px-2">
+        <div className="w-[340px] space-y-0.5 mb-8">
+          <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span className="font-bold">{assignment.assignmentNumber}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Berangkat dari</span><span>:</span><span>{assignment.origin}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Pada tanggal</span><span>:</span><span>{formatDateID(assignment.startDate)}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Ke</span><span>:</span><span>{assignment.destination}</span></div>
-          <div className="pt-4 text-center">
-            <p className="font-bold">{pptk.jabatan}</p>
-            <div className="h-16"></div>
-            <p className="font-bold underline uppercase">{pptk.name}</p>
-            <p>NIP. {pptk.nip}</p>
+          
+          <div className="pt-8 text-center">
+            <p className="font-bold uppercase text-[9pt] leading-tight mb-14">{pptk.jabatan}</p>
+            <p className="font-bold underline uppercase text-[10pt] tracking-tight">{pptk.name}</p>
+            <p className="text-[9pt]">NIP. {pptk.nip}</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-0 border-t border-black">
-        {['II', 'III', 'IV'].map((id, idx) => {
+        {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
+          const verticalPadding = 'pt-2'; 
+
           return (
-            <div key={id} className="grid grid-cols-2 border-b border-black">
-              <div className="border-r border-black p-2 min-h-[180px]">
-                <div className="grid grid-cols-[20px_90px_10px_1fr] gap-x-0.5">
-                  <span className="font-bold">{id}.</span>
-                  <span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
+            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[160px]">
+              <div className="border-r border-black p-2 flex flex-col h-full">
+                <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
+                  <span className="font-bold">{label}</span><span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
                   <span></span><span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
-                  <span></span><span className="align-top">Kepala</span><span className="align-top">:</span>
-                  <div className="flex flex-col">
-                    <span className="uppercase font-bold">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-none">{destOff?.instansi || ''}</span>
+                  
+                  <span></span><span className="leading-tight mt-1">Kepala</span><span className="leading-tight mt-1">:</span>
+                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
+                    {isFilled && (
+                      <div className="flex flex-col items-center">
+                        <p className="font-bold uppercase text-[9.5pt] leading-tight">{destOff.jabatan}</p>
+                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7">{destOff.instansi}</p>
+                        <p className="font-bold underline uppercase text-[10.5pt] tracking-tight">{destOff.name}</p>
+                        <p className="text-[9.5pt]">NIP. {destOff.nip}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {isFilled && (<div className="mt-8 text-center"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
-              <div className="p-2 min-h-[180px]">
-                <div className="grid grid-cols-[90px_10px_1fr] gap-x-0.5">
-                  <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
+
+              <div className="p-2 flex flex-col h-full">
+                <div className={`${verticalPadding} grid grid-cols-[95px_10px_1fr] gap-y-0.5`}>
+                  <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : (destOff?.instansi || '')}</span>
                   <span>Ke</span><span>:</span><span>{idx === 0 ? (skpd.lokasi || 'Mataram') : ''}</span>
                   <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
-                  <span className="align-top">Kepala</span><span className="align-top">:</span>
-                  <div className="flex flex-col">
-                    <span className="uppercase font-bold">{destOff?.jabatan || ''}</span>
-                    <span className="font-bold uppercase leading-none">{destOff?.instansi || ''}</span>
+                  
+                  <span className="leading-tight mt-1">Kepala</span><span className="leading-tight mt-1">:</span>
+                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
+                    {isFilled && (
+                      <div className="flex flex-col items-center">
+                        <p className="font-bold uppercase text-[9.5pt] leading-tight">{destOff.jabatan}</p>
+                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7">{destOff.instansi}</p>
+                        <p className="font-bold underline uppercase text-[10.5pt] tracking-tight">{destOff.name}</p>
+                        <p className="text-[9.5pt]">NIP. {destOff.nip}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {isFilled && (<div className="mt-8 text-center"><div className="h-12"></div><p className="font-bold underline uppercase">{destOff.name}</p><p>NIP. {destOff.nip}</p></div>)}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-4">
-        <p className="text-justify leading-relaxed">V. Telah diperiksa...</p>
-        <div className="grid grid-cols-2 mt-4">
+      {/* Bagian bawah SPPD Belakang (Diperketat agar muat 1 halaman) */}
+      <div className="mt-2 px-2 space-y-2">
+        <div className="border-b border-black pb-1">
+          <p className="text-justify text-[9pt] leading-relaxed">
+            V. Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-[110px_1fr] gap-2 items-center">
+          <span className="font-bold text-[9pt] whitespace-nowrap">VI. CATATAN LAIN-LAIN</span>
+          <div className="border-b border-black w-full h-1.5"></div>
+        </div>
+
+        <div className="border-b border-black pb-2">
+          <p className="text-justify text-[8pt] leading-snug">
+            VII. Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat / tiba serta Bendaharawan bertanggung jawab berdasarkan peraturan-peraturan keuangan negara apabila negara mendapat rugi akibat kesalahan, kealpaannya.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 mt-1">
           <div></div>
           <div className="text-center">
-            <div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div>
-            <div className="h-16"></div>
-            <p className="font-bold underline uppercase">{kepala.name}</p>
-            <p>NIP. {kepala.nip}</p>
+            <div className="min-h-[40px]">
+              <p className="font-bold uppercase leading-tight text-[10pt]">{kepala.jabatan}</p>
+            </div>
+            <div className="h-12"></div>
+            <p className="font-bold underline uppercase text-[11pt]">{kepala.name}</p>
+            <p className="text-[10pt]">NIP. {kepala.nip}</p>
           </div>
         </div>
       </div>
@@ -395,7 +406,7 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
         const grandTotal = (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays);
 
         return (
-          <div key={cost.employeeId} className="print-page bg-white text-[11pt] p-[15mm] leading-tight">
+          <div key={cost.employeeId} className="print-page bg-white text-[11pt] leading-tight">
              <div className="text-center mb-6"><h2 className="text-[12pt] font-bold underline uppercase">RINCIAN BIAYA TRANSPORT</h2></div>
              <div className="mb-4">
                 <div className="grid grid-cols-[160px_10px_1fr]"><span>Lampiran SPPD Nomor</span><span>:</span><span>{assignment.assignmentNumber}</span></div>
@@ -442,7 +453,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black p-[15mm] leading-tight">
+    <div className="print-page bg-white font-['Tahoma'] text-[11pt] border border-black leading-tight">
       <Header skpd={skpd} />
       <div className="text-center mb-8 mt-8"><h1 className="text-xl font-bold underline uppercase tracking-[0.2em]">KUITANSI</h1></div>
       <div className="space-y-4 mb-8">

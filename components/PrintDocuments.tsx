@@ -77,7 +77,7 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
 
 /**
  * Template Pejabat Tujuan KHUSUS (OVERLAY CETAK ULANG)
- * Hanya menampilkan data tanda tangan (Data saja, tanpa label Tiba di/Berangkat dari)
+ * Menggunakan struktur IDENTIK dengan SPPD Belakang namun menyembunyikan label garis.
  */
 export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials, skpd, officials }) => {
   const destIds = assignment.destinationOfficialIds || [];
@@ -85,8 +85,9 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
   return (
     <div className="print-page bg-transparent font-['Tahoma'] text-[10pt] relative leading-tight">
+      {/* Header Space (Invisible) */}
       <div className="flex justify-end mt-4 invisible">
-        <div className="w-[340px] space-y-0.5 mb-8 border border-transparent">
+        <div className="w-[340px] space-y-0.5 mb-8">
           <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span>VALUE</span></div>
           <div className="pt-8 text-center"><p className="mb-14">Jabatan</p><p>Nama</p></div>
         </div>
@@ -96,17 +97,16 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-12'; // Turun lebih jauh sesuai permintaan (pt-7 ke pt-12)
+          const verticalPadding = 'pt-20'; // Diturunkan lebih jauh agar pas di kolom
 
           return (
-            <div key={label} className="grid grid-cols-2 min-h-[170px] border border-transparent">
-              {/* Sisi Kiri: Tiba di */}
-              <div className="p-2 flex flex-col h-full">
+            <div key={label} className="grid grid-cols-2 min-h-[180px] border border-transparent">
+              {/* Sisi Kiri (Tiba di) */}
+              <div className="p-2 flex flex-col h-full border border-transparent">
                 <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
                   <span className="invisible">{label}</span>
                   <span className="invisible">Tiba di</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  <span className="invisible"></span>
-                  <span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
+                  <span></span><span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
                   
                   <span></span><span className="invisible leading-tight mt-1">Kepala</span><span className="invisible leading-tight mt-1">:</span>
                   <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
@@ -122,8 +122,8 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
                 </div>
               </div>
 
-              {/* Sisi Kanan: Berangkat dari */}
-              <div className="p-2 flex flex-col h-full">
+              {/* Sisi Kanan (Berangkat dari) */}
+              <div className="p-2 flex flex-col h-full border border-transparent">
                 <div className={`${verticalPadding} grid grid-cols-[95px_10px_1fr] gap-y-0.5`}>
                   <span className="invisible">Berangkat dari</span><span className="invisible">:</span><span className="invisible">VALUE</span>
                   <span className="invisible">Ke</span><span className="invisible">:</span><span className="invisible">VALUE</span>
@@ -296,7 +296,7 @@ export const SPPDBackTemplate: React.FC<{
   return (
     <div className="print-page bg-white font-['Tahoma'] text-[10pt] border border-black relative leading-tight">
       <div className="flex justify-end mt-4 px-2">
-        <div className="w-[340px] space-y-0.5 mb-8">
+        <div className="w-[340px] space-y-0.5 mb-8 text-black">
           <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span className="font-bold">{assignment.assignmentNumber}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Berangkat dari</span><span>:</span><span>{assignment.origin}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Pada tanggal</span><span>:</span><span>{formatDateID(assignment.startDate)}</span></div>
@@ -314,10 +314,10 @@ export const SPPDBackTemplate: React.FC<{
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-12'; // Turun lebih jauh (pt-7 ke pt-12)
+          const verticalPadding = 'pt-20'; // Menyelaraskan dengan PejabatTujuanTemplate
 
           return (
-            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[170px]">
+            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[180px]">
               <div className="border-r border-black p-2 flex flex-col h-full">
                 <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
                   <span className="font-bold">{label}</span><span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>

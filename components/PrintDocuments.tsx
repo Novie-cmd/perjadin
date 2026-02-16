@@ -96,10 +96,10 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-7'; // Turun 5 spacing (dari pt-2 ke pt-7)
+          const verticalPadding = 'pt-12'; // Turun lebih jauh sesuai permintaan (pt-7 ke pt-12)
 
           return (
-            <div key={label} className="grid grid-cols-2 min-h-[160px] border border-transparent">
+            <div key={label} className="grid grid-cols-2 min-h-[170px] border border-transparent">
               {/* Sisi Kiri: Tiba di */}
               <div className="p-2 flex flex-col h-full">
                 <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
@@ -133,8 +133,8 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
                   <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
                     {isFilled && (
                       <div className="flex flex-col items-center">
-                        <p className="font-bold uppercase text-[9.5pt] leading-tight text-black">{destOff.jabatan}</p>
-                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7 text-black">{destOff.instansi}</p>
+                        <p className="font-bold uppercase text-[9.5pt] text-black leading-tight">{destOff.jabatan}</p>
+                        <p className="font-normal uppercase text-[8.5pt] text-black leading-tight mb-7">{destOff.instansi}</p>
                         <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
                         <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
                       </div>
@@ -314,10 +314,10 @@ export const SPPDBackTemplate: React.FC<{
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
           const isFilled = !!destOff;
-          const verticalPadding = 'pt-7'; // Turun 5 spacing (dari pt-2 ke pt-7)
+          const verticalPadding = 'pt-12'; // Turun lebih jauh (pt-7 ke pt-12)
 
           return (
-            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[160px]">
+            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[170px]">
               <div className="border-r border-black p-2 flex flex-col h-full">
                 <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
                   <span className="font-bold">{label}</span><span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
@@ -361,34 +361,33 @@ export const SPPDBackTemplate: React.FC<{
         })}
       </div>
 
-      {/* Bagian bawah SPPD Belakang (Diperketat agar muat 1 halaman) */}
-      <div className="mt-2 px-2 space-y-2">
-        <div className="border-b border-black pb-1">
-          <p className="text-justify text-[9pt] leading-relaxed">
+      <div className="mt-1 px-2 space-y-1">
+        <div className="border-b border-black pb-0.5">
+          <p className="text-justify text-[8.5pt] leading-relaxed">
             V. Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
           </p>
         </div>
         
-        <div className="grid grid-cols-[110px_1fr] gap-2 items-center">
-          <span className="font-bold text-[9pt] whitespace-nowrap">VI. CATATAN LAIN-LAIN</span>
-          <div className="border-b border-black w-full h-1.5"></div>
+        <div className="grid grid-cols-[110px_1fr] gap-1 items-center">
+          <span className="font-bold text-[8.5pt] whitespace-nowrap">VI. CATATAN LAIN-LAIN</span>
+          <div className="border-b border-black w-full h-1"></div>
         </div>
 
-        <div className="border-b border-black pb-2">
+        <div className="border-b border-black pb-1">
           <p className="text-justify text-[8pt] leading-snug">
             VII. Pejabat yang berwenang menerbitkan SPPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat / tiba serta Bendaharawan bertanggung jawab berdasarkan peraturan-peraturan keuangan negara apabila negara mendapat rugi akibat kesalahan, kealpaannya.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 mt-1">
+        <div className="grid grid-cols-2 mt-0.5">
           <div></div>
           <div className="text-center">
-            <div className="min-h-[40px]">
-              <p className="font-bold uppercase leading-tight text-[10pt]">{kepala.jabatan}</p>
+            <div className="min-h-[35px]">
+              <p className="font-bold uppercase leading-tight text-[9.5pt]">{kepala.jabatan}</p>
             </div>
-            <div className="h-12"></div>
-            <p className="font-bold underline uppercase text-[11pt]">{kepala.name}</p>
-            <p className="text-[10pt]">NIP. {kepala.nip}</p>
+            <div className="h-10"></div>
+            <p className="font-bold underline uppercase text-[10.5pt]">{kepala.name}</p>
+            <p className="text-[9.5pt]">NIP. {kepala.nip}</p>
           </div>
         </div>
       </div>

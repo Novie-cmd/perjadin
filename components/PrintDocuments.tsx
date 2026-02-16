@@ -13,6 +13,12 @@ interface Props {
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_TENGGARA_BARAT.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
 
+// KONFIGURASI JARAK UNTUK OVERLAY (Disesuaikan ke 145px untuk presisi baris Kepala)
+const BLOCK_STYLE = {
+  minHeight: 'min-h-[220px]',
+  paddingTop: 'pt-[145px]', 
+};
+
 const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
   const provinsiValue = skpd.provinsi?.trim() || '';
   const displayProvinsiBaris1 = provinsiValue || "PROVINSI NUSA TENGGARA BARAT";
@@ -76,69 +82,45 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
 };
 
 /**
- * Template Pejabat Tujuan KHUSUS (OVERLAY CETAK ULANG)
- * Menggunakan struktur IDENTIK dengan SPPD Belakang namun menyembunyikan label garis.
+ * Template Pejabat Tujuan (OVERLAY)
+ * Digunakan untuk mencetak HANYA data pejabat di atas kertas fisik.
  */
-export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials, skpd, officials }) => {
+export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destinationOfficials }) => {
   const destIds = assignment.destinationOfficialIds || [];
   const getDestOfficial = (index: number) => destinationOfficials.find(o => o.id === (destIds[index] || ''));
 
   return (
     <div className="print-page bg-transparent font-['Tahoma'] text-[10pt] relative leading-tight">
-      {/* Header Space (Invisible) */}
-      <div className="flex justify-end mt-4 invisible">
-        <div className="w-[340px] space-y-0.5 mb-8">
-          <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span>VALUE</span></div>
-          <div className="pt-8 text-center"><p className="mb-14">Jabatan</p><p>Nama</p></div>
-        </div>
-      </div>
-
-      <div className="space-y-0">
+      {/* Margin atas untuk melewati blok No SPPD di bagian belakang */}
+      <div className="space-y-0 mt-[165px]">
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
-          const isFilled = !!destOff;
-          const verticalPadding = 'pt-20'; // Diturunkan lebih jauh agar pas di kolom
+          if (!destOff) return <div key={label} className={BLOCK_STYLE.minHeight}></div>;
 
           return (
-            <div key={label} className="grid grid-cols-2 min-h-[180px] border border-transparent">
+            <div key={label} className={`grid grid-cols-2 ${BLOCK_STYLE.minHeight}`}>
               {/* Sisi Kiri (Tiba di) */}
-              <div className="p-2 flex flex-col h-full border border-transparent">
-                <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
-                  <span className="invisible">{label}</span>
-                  <span className="invisible">Tiba di</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  <span></span><span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  
-                  <span></span><span className="invisible leading-tight mt-1">Kepala</span><span className="invisible leading-tight mt-1">:</span>
-                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
-                    {isFilled && (
-                      <div className="flex flex-col items-center">
-                        <p className="font-bold uppercase text-[9.5pt] leading-tight text-black">{destOff.jabatan}</p>
-                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7 text-black">{destOff.instansi}</p>
-                        <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
-                        <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
-                      </div>
-                    )}
+              <div className="p-2 flex flex-col h-full">
+                <div className={`${BLOCK_STYLE.paddingTop} flex`}>
+                  <div className="w-[100px] opacity-0">Kepala :</div>
+                  <div className="flex-1 text-center">
+                    <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
+                    <p className="font-normal uppercase text-[8pt] leading-tight mb-8 text-black">{destOff.instansi}</p>
+                    <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
+                    <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
                   </div>
                 </div>
               </div>
 
               {/* Sisi Kanan (Berangkat dari) */}
-              <div className="p-2 flex flex-col h-full border border-transparent">
-                <div className={`${verticalPadding} grid grid-cols-[95px_10px_1fr] gap-y-0.5`}>
-                  <span className="invisible">Berangkat dari</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  <span className="invisible">Ke</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  <span className="invisible">Pada tanggal</span><span className="invisible">:</span><span className="invisible">VALUE</span>
-                  
-                  <span className="invisible leading-tight mt-1">Kepala</span><span className="invisible leading-tight mt-1">:</span>
-                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
-                    {isFilled && (
-                      <div className="flex flex-col items-center">
-                        <p className="font-bold uppercase text-[9.5pt] text-black leading-tight">{destOff.jabatan}</p>
-                        <p className="font-normal uppercase text-[8.5pt] text-black leading-tight mb-7">{destOff.instansi}</p>
-                        <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
-                        <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
-                      </div>
-                    )}
+              <div className="p-2 flex flex-col h-full">
+                <div className={`${BLOCK_STYLE.paddingTop} flex`}>
+                  <div className="w-[70px] opacity-0">Kepala :</div>
+                  <div className="flex-1 text-center">
+                    <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
+                    <p className="font-normal uppercase text-[8pt] leading-tight mb-8 text-black">{destOff.instansi}</p>
+                    <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
+                    <p className="text-[9.5pt] text-black">NIP. {destOff.nip}</p>
                   </div>
                 </div>
               </div>
@@ -283,26 +265,21 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
   );
 };
 
-export const SPPDBackTemplate: React.FC<{ 
-  assignment: TravelAssignment; 
-  skpd: SKPDConfig; 
-  officials: Official[];
-  destinationOfficials: DestinationOfficial[];
-}> = ({ assignment, skpd, officials, destinationOfficials }) => {
+export const SPPDBackTemplate: React.FC<Props> = ({ assignment, skpd, officials, destinationOfficials }) => {
   const { kepala, pptk } = getSignatories(assignment, officials, skpd);
   const destIds = assignment.destinationOfficialIds || [];
   const getDestOfficial = (index: number) => destinationOfficials.find(o => o.id === (destIds[index] || ''));
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-[10pt] border border-black relative leading-tight">
+    <div className="print-page bg-white font-['Tahoma'] text-[10pt] border border-black relative leading-tight text-black">
       <div className="flex justify-end mt-4 px-2">
-        <div className="w-[340px] space-y-0.5 mb-8 text-black">
+        <div className="w-[340px] space-y-0.5 mb-2">
           <div className="grid grid-cols-[100px_10px_1fr]"><span>SPPD No.</span><span>:</span><span className="font-bold">{assignment.assignmentNumber}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Berangkat dari</span><span>:</span><span>{assignment.origin}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Pada tanggal</span><span>:</span><span>{formatDateID(assignment.startDate)}</span></div>
           <div className="grid grid-cols-[100px_10px_1fr]"><span>Ke</span><span>:</span><span>{assignment.destination}</span></div>
           
-          <div className="pt-8 text-center">
+          <div className="pt-6 text-center">
             <p className="font-bold uppercase text-[9pt] leading-tight mb-14">{pptk.jabatan}</p>
             <p className="font-bold underline uppercase text-[10pt] tracking-tight">{pptk.name}</p>
             <p className="text-[9pt]">NIP. {pptk.nip}</p>
@@ -313,47 +290,50 @@ export const SPPDBackTemplate: React.FC<{
       <div className="space-y-0 border-t border-black">
         {['II.', 'III.', 'IV.'].map((label, idx) => {
           const destOff = getDestOfficial(idx);
-          const isFilled = !!destOff;
-          const verticalPadding = 'pt-20'; // Menyelaraskan dengan PejabatTujuanTemplate
-
           return (
-            <div key={label} className="grid grid-cols-2 border-b border-black min-h-[180px]">
+            <div key={label} className={`grid grid-cols-2 border-b border-black ${BLOCK_STYLE.minHeight}`}>
               <div className="border-r border-black p-2 flex flex-col h-full">
-                <div className={`${verticalPadding} grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5`}>
+                <div className="grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5">
                   <span className="font-bold">{label}</span><span>Tiba di</span><span>:</span><span>{idx === 0 ? assignment.destination : ''}</span>
                   <span></span><span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.startDate) : ''}</span>
-                  
-                  <span></span><span className="leading-tight mt-1">Kepala</span><span className="leading-tight mt-1">:</span>
-                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
-                    {isFilled && (
-                      <div className="flex flex-col items-center">
-                        <p className="font-bold uppercase text-[9.5pt] leading-tight">{destOff.jabatan}</p>
-                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7">{destOff.instansi}</p>
-                        <p className="font-bold underline uppercase text-[10.5pt] tracking-tight">{destOff.name}</p>
-                        <p className="text-[9.5pt]">NIP. {destOff.nip}</p>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                
+                <div className={`flex-1 flex ${BLOCK_STYLE.paddingTop} items-start`}>
+                   <div className="w-[100px] font-bold pl-[30px] pt-1">Kepala</div>
+                   <div className="w-[10px] font-bold pt-1">:</div>
+                   <div className="flex-1 text-center">
+                     {destOff && (
+                       <>
+                         <p className="font-bold uppercase text-[9pt] leading-tight">{destOff.jabatan}</p>
+                         <p className="font-normal uppercase text-[8pt] leading-tight mb-8">{destOff.instansi}</p>
+                         <p className="font-bold underline uppercase text-[10pt]">{destOff.name}</p>
+                         <p className="text-[9pt]">NIP. {destOff.nip}</p>
+                       </>
+                     )}
+                   </div>
                 </div>
               </div>
 
               <div className="p-2 flex flex-col h-full">
-                <div className={`${verticalPadding} grid grid-cols-[95px_10px_1fr] gap-y-0.5`}>
+                <div className="grid grid-cols-[95px_10px_1fr] gap-y-0.5">
                   <span>Berangkat dari</span><span>:</span><span>{idx === 0 ? assignment.destination : (destOff?.instansi || '')}</span>
                   <span>Ke</span><span>:</span><span>{idx === 0 ? (skpd.lokasi || 'Mataram') : ''}</span>
                   <span>Pada tanggal</span><span>:</span><span>{idx === 0 ? formatDateID(assignment.endDate) : ''}</span>
-                  
-                  <span className="leading-tight mt-1">Kepala</span><span className="leading-tight mt-1">:</span>
-                  <div className="text-center mt-1 min-h-[90px] flex flex-col justify-end">
-                    {isFilled && (
-                      <div className="flex flex-col items-center">
-                        <p className="font-bold uppercase text-[9.5pt] leading-tight">{destOff.jabatan}</p>
-                        <p className="font-normal uppercase text-[8.5pt] leading-tight mb-7">{destOff.instansi}</p>
-                        <p className="font-bold underline uppercase text-[10.5pt] tracking-tight">{destOff.name}</p>
-                        <p className="text-[9.5pt]">NIP. {destOff.nip}</p>
-                      </div>
-                    )}
-                  </div>
+                </div>
+
+                <div className={`flex-1 flex ${BLOCK_STYLE.paddingTop} items-start`}>
+                   <div className="w-[70px] font-bold pt-1">Kepala</div>
+                   <div className="w-[10px] font-bold pt-1">:</div>
+                   <div className="flex-1 text-center">
+                     {destOff && (
+                        <>
+                          <p className="font-bold uppercase text-[9pt] leading-tight">{destOff.jabatan}</p>
+                          <p className="font-normal uppercase text-[8pt] leading-tight mb-8">{destOff.instansi}</p>
+                          <p className="font-bold underline uppercase text-[10pt]">{destOff.name}</p>
+                          <p className="text-[9pt]">NIP. {destOff.nip}</p>
+                        </>
+                      )}
+                   </div>
                 </div>
               </div>
             </div>
@@ -361,16 +341,16 @@ export const SPPDBackTemplate: React.FC<{
         })}
       </div>
 
-      <div className="mt-1 px-2 space-y-1">
-        <div className="border-b border-black pb-0.5">
+      <div className="mt-2 px-2 space-y-1">
+        <div className="border-b border-black pb-1">
           <p className="text-justify text-[8.5pt] leading-relaxed">
             V. Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.
           </p>
         </div>
         
-        <div className="grid grid-cols-[110px_1fr] gap-1 items-center">
+        <div className="grid grid-cols-[120px_1fr] gap-1 items-center">
           <span className="font-bold text-[8.5pt] whitespace-nowrap">VI. CATATAN LAIN-LAIN</span>
-          <div className="border-b border-black w-full h-1"></div>
+          <div className="border-b border-black w-full h-px"></div>
         </div>
 
         <div className="border-b border-black pb-1">
@@ -379,13 +359,13 @@ export const SPPDBackTemplate: React.FC<{
           </p>
         </div>
 
-        <div className="grid grid-cols-2 mt-0.5">
+        <div className="grid grid-cols-2 mt-2">
           <div></div>
           <div className="text-center">
-            <div className="min-h-[35px]">
+            <div className="min-h-[40px]">
               <p className="font-bold uppercase leading-tight text-[9.5pt]">{kepala.jabatan}</p>
             </div>
-            <div className="h-10"></div>
+            <div className="h-16"></div>
             <p className="font-bold underline uppercase text-[10.5pt]">{kepala.name}</p>
             <p className="text-[9.5pt]">NIP. {kepala.nip}</p>
           </div>
@@ -476,7 +456,7 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
 
   return (
-    <div className="landscape-page bg-white font-['Tahoma'] text-[11pt] leading-tight p-8">
+    <div className="landscape-page bg-white font-['Tahoma'] text-[11pt] leading-tight p-8 text-black">
        <div className="text-center mb-6"><p className="font-bold uppercase">Daftar Penerimaan Uang Perjalanan Dinas Ke {assignment.destination}</p><p className="font-bold">Nomor : {assignment.assignmentNumber}</p></div>
        <table className="w-full border-collapse border border-black text-[10pt]">
           <thead className="bg-slate-50"><tr><th className="border border-black p-1 w-8">No</th><th className="border border-black p-1">Nama</th><th className="border border-black p-1">Gol</th><th className="border border-black p-1">Jumlah</th><th className="border border-black p-1 w-40">Tanda Tangan</th></tr></thead>

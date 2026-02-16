@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official, DestinationOfficial } from '../types';
+import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, X, Users, Wallet, MapPin, Zap, Trash2, Search, UserCheck, Info, Truck, Settings2 } from 'lucide-react';
+import { Save, Plus, Users, Wallet, MapPin, Search, UserCheck, Truck } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
   masterCosts: MasterCost[];
   subActivities: SubActivity[];
   officials: Official[];
-  destinationOfficials: DestinationOfficial[];
   initialData?: TravelAssignment;
   onSave: (data: TravelAssignment) => void;
   onCancel: () => void;
@@ -21,7 +20,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
   masterCosts, 
   subActivities, 
   officials, 
-  destinationOfficials,
   initialData, 
   onSave, 
   onCancel
@@ -49,8 +47,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || '',
-      destinationOfficialIds: ['', '', '']
+      bendaharaId: defaultBendahara?.id || ''
     };
   });
 
@@ -177,7 +174,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
           </div>
           <div><label className="block text-sm font-medium text-gray-700 font-bold">Tanggal Berangkat</label><input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 font-bold text-slate-700" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} /></div>
           <div><label className="block text-sm font-medium text-gray-700 font-bold">Tanggal Kembali</label><input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 font-bold text-slate-700" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} /></div>
-          <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 font-bold">Lama Perjalanan (Hari)</label><div className="flex items-center gap-3 mt-1"><input type="text" readOnly className="w-32 p-2.5 border border-slate-200 rounded-lg bg-slate-50 font-black text-blue-600" value={`${formData.durationDays || 0} Hari`} /><span className="text-[10px] text-slate-400 font-bold uppercase italic">* Dihitung otomatis berdasarkan tanggal</span></div></div>
         </div>
       </div>
 
@@ -194,16 +190,6 @@ export const TravelAssignmentForm: React.FC<Props> = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4"><h3 className="text-lg font-semibold flex items-center gap-2 text-slate-800 uppercase tracking-tight"><Users className="text-blue-600" size={20} /> Pilih Pegawai Terlibat</h3><div className="relative w-full sm:w-64"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" placeholder="Cari nama pegawai..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">{filteredEmployees.map(emp => (<div key={emp.id} onClick={() => handleToggleEmployee(emp.id)} className={`p-3 border rounded-xl cursor-pointer transition flex items-center gap-3 ${formData.selectedEmployeeIds?.includes(emp.id) ? 'bg-blue-50 border-blue-400 ring-4 ring-blue-50 shadow-sm' : 'hover:bg-slate-50 border-slate-200'}`}><div className={`w-5 h-5 rounded-full border flex items-center justify-center ${formData.selectedEmployeeIds?.includes(emp.id) ? 'bg-blue-600 border-blue-600 shadow-sm' : 'bg-white border-slate-300'}`}>{formData.selectedEmployeeIds?.includes(emp.id) && <Plus size={14} className="text-white" />}</div><div className="overflow-hidden"><div className="text-sm font-bold text-slate-700 truncate">{emp.name}</div><div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{emp.jabatan}</div></div></div>))}</div>
       </div>
-
-      {formData.costs && formData.costs.length > 0 && (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100"><h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-800 uppercase tracking-tight"><Wallet className="text-blue-600" size={20} /> Rincian Biaya & Akomodasi</h3><div className="space-y-6">
-            {formData.costs.map((cost, idx) => {
-              const emp = employees.find(e => e.id === cost.employeeId);
-              const totalRow = (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays);
-              return (<div key={cost.employeeId} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50"><div className="flex justify-between items-center bg-slate-100 p-3 border-b border-slate-200"><div className="flex items-center gap-3"><span className="font-black text-white bg-slate-400 w-5 h-5 flex items-center justify-center rounded-full text-[10px]">{idx + 1}</span><div className="font-black text-slate-700 uppercase text-xs tracking-tight">{emp?.name}</div></div><div className="text-xs font-black text-blue-700 px-3 py-1 bg-blue-100 rounded-full border border-blue-200">Rp {formatCurrency(totalRow)}</div></div><div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4"><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Uang Harian ({cost.dailyDays} Hari)</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.dailyAllowance)} onChange={e => updateCost(cost.employeeId, 'dailyAllowance', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Akomodasi ({cost.lodgingDays} Malam)</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.lodging)} onChange={e => updateCost(cost.employeeId, 'lodging', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Transport BBM / Umum (PP)</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.transportBbm)} onChange={e => updateCost(cost.employeeId, 'transportBbm', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Taksi / Lokal</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.taxi)} onChange={e => updateCost(cost.employeeId, 'taxi', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Kapal Laut</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.seaTransport)} onChange={e => updateCost(cost.employeeId, 'seaTransport', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Pesawat Udara</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.airTransport)} onChange={e => updateCost(cost.employeeId, 'airTransport', parseNumber(e.target.value))} /></div><div className="space-y-1"><label className="block text-[10px] font-black text-slate-400 uppercase">Representasi</label><input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-sm font-black" value={formatNumber(cost.representation)} onChange={e => updateCost(cost.employeeId, 'representation', parseNumber(e.target.value))} /></div></div></div>);
-            })}
-          </div></div>
-      )}
 
       <div className="flex justify-end gap-3 sticky bottom-4 bg-white/90 backdrop-blur p-4 rounded-xl shadow-2xl border border-slate-200 z-10"><button type="button" onClick={onCancel} className="px-6 py-3 text-slate-600 hover:bg-slate-100 rounded-xl transition font-black text-xs uppercase tracking-widest border border-slate-200">Batal</button><button type="submit" className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition flex items-center gap-2 shadow-2xl shadow-blue-300"><Save size={18} /> Simpan Perjalanan</button></div>
     </form>

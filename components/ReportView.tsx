@@ -1,15 +1,16 @@
 
 import React, { useState, useMemo } from 'react';
 import { Employee, TravelAssignment, TravelCost } from '../types';
-import { Users, Calendar, Wallet, FileBarChart, Search, Info } from 'lucide-react';
+import { Users, Calendar, Wallet, FileBarChart, Search, Info, UserSearch } from 'lucide-react';
 import { formatCurrency, formatDateID } from '../utils';
 
 interface Props {
   employees: Employee[];
   assignments: TravelAssignment[];
+  onOpenDestManager: (assignment: TravelAssignment) => void;
 }
 
-export const ReportView: React.FC<Props> = ({ employees, assignments }) => {
+export const ReportView: React.FC<Props> = ({ employees, assignments, onOpenDestManager }) => {
   const [selectedEmpId, setSelectedEmpId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -146,12 +147,13 @@ export const ReportView: React.FC<Props> = ({ employees, assignments }) => {
                     <th className="px-6 py-4">Waktu & SPT</th>
                     <th className="px-6 py-4">Tujuan & Maksud</th>
                     <th className="px-6 py-4 text-right">Biaya Personal</th>
+                    <th className="px-6 py-4 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {employeeHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">
+                      <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
                         Belum ada riwayat perjalanan untuk pegawai ini.
                       </td>
                     </tr>
@@ -175,6 +177,16 @@ export const ReportView: React.FC<Props> = ({ employees, assignments }) => {
                           <td className="px-6 py-4 text-right">
                             <div className="text-sm font-black text-blue-600">Rp {formatCurrency(tripCost)}</div>
                             <div className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Durasi: {trip.durationDays} Hari</div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                             <button 
+                               onClick={() => onOpenDestManager(trip)}
+                               className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition shadow-sm border border-emerald-100 flex items-center gap-1.5 mx-auto"
+                               title="Atur Pejabat Tujuan"
+                             >
+                               <UserSearch size={16} />
+                               <span className="text-[10px] font-black uppercase">TTD Tujuan</span>
+                             </button>
                           </td>
                         </tr>
                       );

@@ -9,20 +9,20 @@ export interface Employee {
   representationDalam?: number;
 }
 
-export interface DestinationOfficial {
-  id: string;
-  name: string;
-  nip: string;
-  jabatan: string;
-  instansi: string; // Dinas/Org/Kab
-}
-
 export interface Official {
   id: string;
   name: string;
   nip: string;
   jabatan: string;
   role: 'KEPALA' | 'PPTK' | 'BENDAHARA';
+}
+
+export interface DestinationOfficial {
+  id: string;
+  name: string;
+  nip: string;
+  jabatan: string;
+  instansi: string;
 }
 
 export interface SKPDConfig {
@@ -97,7 +97,7 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
-  destinationOfficialIds?: string[];
+  destinationOfficialIds?: string[]; // Field untuk menyimpan ID pejabat tujuan
 }
 
 export enum ViewMode {

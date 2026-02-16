@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { 
   ViewMode, Employee, TravelAssignment, PrintType, 
-  MasterCost, SubActivity, SKPDConfig, Official, DestinationOfficial, TravelCost 
+  MasterCost, SubActivity, SKPDConfig, Official, TravelCost, DestinationOfficial 
 } from './types';
 import { EmployeeForm } from './components/EmployeeForm';
 import { OfficialForm } from './components/OfficialForm';
@@ -11,8 +11,8 @@ import { TravelAssignmentForm } from './components/TravelAssignmentForm';
 import { MasterDataForm } from './components/MasterDataForm';
 import { SKPDForm } from './components/SKPDForm';
 import { ReportView } from './components/ReportView';
-import { DestinationOfficialManager } from './components/DestinationOfficialManager';
 import { DatabaseSetup } from './components/DatabaseSetup';
+import { DestinationOfficialManager } from './components/DestinationOfficialManager';
 import { 
   SPTTemplate, 
   SPPDFrontTemplate,
@@ -25,8 +25,8 @@ import {
 import { 
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
-  BarChart3, RefreshCw, LogOut, Settings2, ShieldCheck, Map,
-  PieChart as PieChartIcon, Wallet, Landmark, TrendingUp, AlertCircle, Coins
+  BarChart3, RefreshCw, LogOut, ShieldCheck, 
+  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch
 } from 'lucide-react';
 import { formatNumber } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
@@ -62,7 +62,10 @@ const App: React.FC = () => {
   const [activeAssignment, setActiveAssignment] = useState<TravelAssignment | null>(null);
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
-  const [showDestManager, setShowDestManager] = useState(false);
+
+  // State untuk Manager Pejabat Tujuan
+  const [isDestManagerOpen, setIsDestManagerOpen] = useState(false);
+  const [currentAssignForDest, setCurrentAssignForDest] = useState<TravelAssignment | null>(null);
 
   const financialStats = useMemo(() => {
     const realizationMap = (assignments || []).reduce((acc: Record<string, number>, curr: TravelAssignment) => {
@@ -78,26 +81,11 @@ const App: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    const subSummary = (subActivities || [])
-      .filter(s => Number(s.anggaran) > 0)
-      .map(s => {
-        const realization = Number(realizationMap[s.code]) || 0;
-        const spdValue = Number(s.spd) || 0;
-        const anggaranValue = Number(s.anggaran) || 0;
-        return {
-          ...s,
-          realization,
-          sisaSpd: spdValue - realization,
-          sisaAnggaran: anggaranValue - realization
-        };
-      });
-
     const totalAnggaran = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.anggaran) || 0), 0);
     const totalSpd = (subActivities || []).reduce((sum: number, s: SubActivity) => sum + (Number(s.spd) || 0), 0);
     const totalRealisasi = Object.values(realizationMap).reduce((sum: number, v: number) => sum + (Number(v) || 0), 0);
 
     return {
-      subSummary,
       totals: {
         anggaran: totalAnggaran,
         spd: totalSpd,
@@ -144,7 +132,7 @@ const App: React.FC = () => {
       const [
         { data: empData }, 
         { data: offData }, 
-        { data: destOffData }, 
+        { data: destOffData },
         { data: skpdData, error: skpdErr }, 
         { data: costData }, 
         { data: subData }, 
@@ -198,7 +186,8 @@ const App: React.FC = () => {
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
         startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
-        destinationOfficialIds: a.destination_official_ids || [], signDate: a.sign_date, signedAt: a.signed_at 
+        signDate: a.sign_date, signedAt: a.signed_at,
+        destinationOfficialIds: a.destination_official_ids || []
       })));
     } catch (err: any) {
       console.error(err);
@@ -219,28 +208,20 @@ const App: React.FC = () => {
       start_date: data.startDate, end_date: data.endDate, duration_days: data.durationDays, 
       selected_employee_ids: data.selectedEmployeeIds, costs: data.costs, 
       signed_at: data.signedAt, sign_date: data.signDate, pptk_id: data.pptkId, 
-      signer_id: data.signerId, bendahara_id: data.bendaharaId, 
-      destination_official_ids: data.destinationOfficialIds
+      signer_id: data.signerId, bendahara_id: data.bendaharaId,
+      destination_official_ids: data.destinationOfficialIds || []
     });
     if (error) alert(`Gagal menyimpan: ${error.message}`);
     else { await refreshData(); setViewMode(ViewMode.TRAVEL_LIST); }
   };
 
-  const handleUpdateDestinationOfficials = async (assignmentId: string, officialIds: string[]) => {
+  const handleUpdateDestOfficials = async (assignId: string, destIds: string[]) => {
     if (!supabase) return;
     const { error } = await supabase.from('assignments').update({ 
-      destination_official_ids: officialIds 
-    }).eq('id', assignmentId);
-    
-    if (error) {
-      if (error.message.includes('column') || error.message.includes('destination_official_ids')) {
-        alert("PERINGATAN: Kolom database belum ada!\n\nSilakan buka SQL Editor di Supabase dan jalankan:\n\nALTER TABLE assignments ADD COLUMN destination_official_ids TEXT[];\nNOTIFY pgrst, 'reload schema';");
-      } else {
-        alert(`Gagal update: ${error.message}`);
-      }
-    } else {
-      await refreshData();
-    }
+      destination_official_ids: destIds 
+    }).eq('id', assignId);
+    if (error) alert(error.message);
+    else await refreshData();
   };
 
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
@@ -294,7 +275,6 @@ const App: React.FC = () => {
         <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{viewMode.replace('_', ' ')}</h2><p className="text-slate-500 text-[10px] font-bold uppercase mt-1 flex items-center gap-1"><Building2 size={12} /> {skpdConfig.namaSkpd}</p></div>
           <div className="flex items-center gap-3">
-             <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-slate-400 uppercase">Sisa SPD Global</span><span className="text-sm font-black text-blue-600">Rp {formatNumber(financialStats.totals.sisaSpd)}</span></div>
             {viewMode === ViewMode.TRAVEL_LIST && (<button onClick={() => { setEditingAssignment(null); setViewMode(ViewMode.ADD_TRAVEL); }} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase shadow-xl transition hover:bg-blue-700 flex items-center gap-2"><Plus size={18} /> Buat SPT Baru</button>)}
           </div>
         </header>
@@ -308,15 +288,6 @@ const App: React.FC = () => {
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><Wallet className="text-amber-600 mb-3" size={20} /><div className="text-lg font-black text-amber-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaSpd)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa SPD</div></div>
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100"><AlertCircle className="text-rose-600 mb-3" size={20} /><div className="text-lg font-black text-rose-600 leading-tight">Rp {formatNumber(financialStats.totals.sisaAnggaran)}</div><div className="text-slate-400 text-[9px] font-black uppercase mt-1 tracking-wider">Sisa Anggaran</div></div>
             </div>
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-               <div className="p-6 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30"><BarChart3 className="text-blue-600" size={18} /><h3 className="font-black text-slate-800 text-xs uppercase tracking-widest">Informasi Sub Kegiatan & Serapan</h3></div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left">
-                   <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black tracking-widest border-b"><tr><th className="px-6 py-4">Nama Sub Kegiatan</th><th className="px-6 py-4 text-right">Total Anggaran</th><th className="px-6 py-4 text-right">SPD</th><th className="px-6 py-4 text-right">Realisasi</th><th className="px-6 py-4 text-right">Sisa SPD</th><th className="px-6 py-4 text-right">Sisa Anggaran</th></tr></thead>
-                   <tbody className="divide-y">{financialStats.subSummary.map(item => (<tr key={item.code} className="hover:bg-slate-50 text-[11px]"><td className="px-6 py-4"><div className="font-black text-blue-600">{item.code}</div><div className="text-slate-600 font-medium line-clamp-1">{item.name}</div></td><td className="px-6 py-4 text-right font-bold text-slate-700">Rp {formatNumber(item.anggaran)}</td><td className="px-6 py-4 text-right font-bold text-emerald-600">Rp {formatNumber(Number(item.spd) || 0)}</td><td className="px-6 py-4 text-right font-black text-indigo-700">Rp {formatNumber(item.realization)}</td><td className={`px-6 py-4 text-right font-black ${item.sisaSpd < 0 ? 'text-rose-600' : 'text-amber-600'}`}>Rp {formatNumber(item.sisaSpd)}</td><td className="px-6 py-4 text-right font-black text-slate-400">Rp {formatNumber(item.sisaAnggaran)}</td></tr>))}</tbody>
-                 </table>
-               </div>
-            </div>
           </div>
         )}
 
@@ -328,59 +299,77 @@ const App: React.FC = () => {
           <div className="bg-white rounded-3xl border overflow-hidden">
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-slate-400 text-[10px] uppercase font-black border-b"><tr><th className="px-6 py-5">Nomor & Tanggal</th><th className="px-6 py-5">Tujuan</th><th className="px-6 py-5 text-right">Aksi</th></tr></thead>
-              <tbody className="divide-y">{assignments.map(a => (<tr key={a.id} className="hover:bg-slate-50"><td className="px-6 py-5"><div className="font-black text-sm">{a.assignmentNumber}</div><div className="text-[10px] text-slate-400">{a.startDate}</div></td><td className="px-6 py-5"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black">{a.destination}</span></td><td className="px-6 py-5 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button><button onClick={async () => { if(supabase && confirm('Hapus?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div></td></tr>))}</tbody>
+              <tbody className="divide-y">{assignments.map(a => (
+                <tr key={a.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-5"><div className="font-black text-sm">{a.assignmentNumber}</div><div className="text-[10px] text-slate-400">{a.startDate}</div></td>
+                  <td className="px-6 py-5"><span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black">{a.destination}</span></td>
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => { setCurrentAssignForDest(a); setIsDestManagerOpen(true); }}
+                        className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg"
+                        title="Atur Pejabat Tujuan"
+                      >
+                        <UserSearch size={16}/>
+                      </button>
+                      <button onClick={() => { setEditingAssignment(a); setViewMode(ViewMode.ADD_TRAVEL); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
+                      <button onClick={async () => { if(supabase && confirm('Hapus?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} className="p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}</tbody>
             </table>
           </div>
         )}
 
-        {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} destinationOfficials={destinationOfficials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
+        {isDestManagerOpen && currentAssignForDest && (
+          <DestinationOfficialManager 
+            officials={destinationOfficials}
+            selectedIds={currentAssignForDest.destinationOfficialIds || []}
+            onSaveSelection={(ids) => {
+              handleUpdateDestOfficials(currentAssignForDest.id, ids);
+              setIsDestManagerOpen(false);
+            }}
+            onSaveMaster={async (o) => {
+              if (supabase) {
+                await supabase.from('destination_officials').upsert({ ...o, id: o.id || Date.now().toString() });
+                await refreshData();
+              }
+            }}
+            onDeleteMaster={async (id) => {
+              if (supabase && confirm('Hapus dari master?')) {
+                await supabase.from('destination_officials').delete().eq('id', id);
+                await refreshData();
+              }
+            }}
+            onClose={() => setIsDestManagerOpen(false)}
+          />
+        )}
+
+        {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
         {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.dailyAllowance, lodging: c.lodging, transport_bbm: c.transportBbm, sea_transport: c.seaTransport, air_transport: c.airTransport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const data = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data.data && data.data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
-        {viewMode === ViewMode.REPORT && <ReportView employees={employees} assignments={assignments} />}
+        
+        {viewMode === ViewMode.REPORT && (
+          <ReportView 
+            employees={employees} 
+            assignments={assignments} 
+            onOpenDestManager={(a) => {
+              setCurrentAssignForDest(a);
+              setIsDestManagerOpen(true);
+            }}
+          />
+        )}
 
         {viewMode === ViewMode.PRINT_MENU && (
            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-             <div className="p-6 border-b flex items-center justify-between bg-slate-50/50"><div className="flex items-center gap-3"><Printer size={20} className="text-blue-600" /><h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3></div><button onClick={() => setShowDestManager(true)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition hover:bg-slate-300"><Settings2 size={14}/> Kelola Pejabat Tujuan</button></div>
+             <div className="p-6 border-b flex items-center bg-slate-50/50"><Printer size={20} className="text-blue-600 mr-2" /><h3 className="font-black text-slate-800 text-xs uppercase">Daftar SPT Siap Cetak</h3></div>
              <div className="overflow-x-auto">
                <table className="w-full text-left">
-                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100"><tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4">Pejabat Tujuan (SPD Belakang)</th><th className="px-6 py-4 text-right">Opsi Cetak</th></tr></thead>
+                 <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black border-b border-slate-100"><tr><th className="px-6 py-4">Nomor & Tujuan</th><th className="px-6 py-4 text-right">Opsi Cetak</th></tr></thead>
                  <tbody className="divide-y divide-slate-100">
                    {assignments.map(item => (
                      <tr key={item.id} className="hover:bg-slate-50 transition">
                        <td className="px-6 py-5"><div className="font-bold text-slate-800 text-xs">{item.assignmentNumber}</div><div className="text-[10px] text-slate-400 font-medium italic">{item.destination}</div></td>
-                       <td className="px-6 py-5">
-                          <div className="flex flex-col gap-2 max-w-[320px]">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-black text-slate-400 w-12 shrink-0 uppercase tracking-tighter">Blok II :</span>
-                              <select 
-                                className="flex-1 p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white text-slate-700 shadow-sm" 
-                                value={(item.destinationOfficialIds || [])[0] || ''} 
-                                onChange={(e) => {
-                                  const currentIds = [...(item.destinationOfficialIds || ['', '', ''])];
-                                  currentIds[0] = e.target.value;
-                                  handleUpdateDestinationOfficials(item.id, currentIds);
-                                }}
-                              >
-                                <option value="">-- Tujuan 1 (Utama) --</option>
-                                {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                              </select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[8px] font-black text-slate-400 w-12 shrink-0 uppercase tracking-tighter">Blok III :</span>
-                              <select 
-                                className="flex-1 p-1.5 border border-slate-200 rounded text-[9px] font-bold bg-white text-slate-700 shadow-sm" 
-                                value={(item.destinationOfficialIds || [])[1] || ''} 
-                                onChange={(e) => {
-                                  const currentIds = [...(item.destinationOfficialIds || ['', '', ''])];
-                                  currentIds[1] = e.target.value;
-                                  handleUpdateDestinationOfficials(item.id, currentIds);
-                                }}
-                              >
-                                <option value="">-- Tujuan 2 (Opsional) --</option>
-                                {destinationOfficials.map(doff => (<option key={doff.id} value={doff.id}>{doff.name}</option>))}
-                              </select>
-                            </div>
-                          </div>
-                       </td>
                        <td className="px-6 py-5 text-right">
                          <div className="flex gap-2 flex-wrap justify-end">
                            {[
@@ -390,20 +379,18 @@ const App: React.FC = () => {
                              { label: 'KUITANSI', type: PrintType.KUITANSI, color: 'amber' },
                              { label: 'RINCIAN', type: PrintType.LAMPIRAN_III, color: 'purple' },
                              { label: 'TERIMA', type: PrintType.DAFTAR_PENERIMAAN, color: 'rose' },
-                             { label: 'PEJABAT', type: PrintType.PEJABAT_TUJUAN, color: 'indigo' }
+                             { label: 'TTD TUJUAN', type: PrintType.PEJABAT_TUJUAN, color: 'emerald' }
                            ].map(btn => (<button key={btn.type} onClick={() => { setActiveAssignment(item); setPrintType(btn.type as PrintType); setViewMode(ViewMode.PRINT_PREVIEW); }} className={`px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${btn.color === 'blue' ? 'text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white' : btn.color === 'emerald' ? 'text-emerald-600 border-emerald-100 bg-emerald-50 hover:bg-emerald-600 hover:text-white' : btn.color === 'amber' ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-600 hover:text-white' : btn.color === 'purple' ? 'text-purple-600 border-purple-100 bg-purple-50 hover:bg-purple-600 hover:text-white' : btn.color === 'rose' ? 'text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-600 hover:text-white' : 'text-indigo-600 border-indigo-100 bg-indigo-50 hover:bg-indigo-600 hover:text-white'}`}>{btn.label}</button>))}
                          </div>
                        </td>
                      </tr>
                    ))}
-                   {assignments.length === 0 && (<tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>)}
+                   {assignments.length === 0 && (<tr><td colSpan={2} className="px-6 py-12 text-center text-slate-400 italic">Belum ada SPT untuk dicetak.</td></tr>)}
                  </tbody>
                </table>
              </div>
            </div>
         )}
-
-        {showDestManager && <DestinationOfficialManager officials={destinationOfficials} onSelect={() => setShowDestManager(false)} onClose={() => setShowDestManager(false)} onSave={async (off) => { if(supabase) { await supabase.from('destination_officials').upsert(off); await refreshData(); } }} onDelete={async (id) => { if(supabase) { await supabase.from('destination_officials').delete().eq('id', id); await refreshData(); } }} />}
       </main>
     </div>
   );

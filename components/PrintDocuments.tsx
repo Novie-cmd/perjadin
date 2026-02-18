@@ -603,11 +603,14 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
   const { kepala, bendahara } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
 
+  // Membersihkan redaksi maksud agar tidak terjadi pengulangan "Dalam rangka Dalam rangka"
+  const cleanPurpose = (assignment.purpose || '').replace(/^Dalam rangka /i, '');
+
   return (
     <div className="landscape-page bg-white font-['Tahoma'] text-[9pt] leading-tight p-8 text-black">
        <div className="text-center mb-6 mx-auto max-w-[220mm]">
          <p className="font-normal text-[10pt]">
-           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{assignment.purpose}</span> selama <span className="font-bold">{assignment.durationDays} ({numberToWords(assignment.durationDays)}) hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {kepala.jabatan} {skpd.namaSkpd} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
+           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{cleanPurpose}</span> selama <span className="font-bold">{assignment.durationDays || 0} ({numberToWords(assignment.durationDays || 0)}) hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {kepala.jabatan} {skpd.namaSkpd} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
          </p>
        </div>
 

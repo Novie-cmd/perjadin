@@ -143,8 +143,8 @@ const App: React.FC = () => {
   };
 
   const handleDisconnectDb = () => {
-    localStorage.removeItem('SB_URL');
-    localStorage.removeItem('SB_KEY');
+    localStorage.removeItem('SB_URL', url);
+    localStorage.removeItem('SB_KEY', key);
     window.location.reload();
   };
 
@@ -217,7 +217,7 @@ const App: React.FC = () => {
       if (assignData) setAssignments(assignData.map(a => ({ 
         ...a, selectedEmployeeIds: a.selected_employee_ids, travelType: a.travel_type, 
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
-        startDate: a.start_date, endDate: a.end_date, duration_days: a.duration_days, 
+        startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
         signDate: a.sign_date, signedAt: a.signed_at,
         destinationOfficialIds: a.destination_official_ids || []
@@ -251,6 +251,7 @@ const App: React.FC = () => {
 
   const handleUpdateDestOfficials = async (assignId: string, destIds: string[]) => {
     if (!supabase) return;
+    // Fix: Use 'destIds' parameter instead of undefined 'ids' variable
     const { error } = await supabase.from('assignments').update({ 
       destination_official_ids: destIds 
     }).eq('id', assignId);
@@ -466,7 +467,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepala_nama, kepala_nip: cfg.kepala_nip, kepala_jabatan: cfg.kepala_jabatan, bendahara_nama: cfg.bendahara_nama, bendahara_nip: cfg.bendahara_nip, pptk_nama: cfg.pptk_nama, pptk_nip: cfg.pptk_nip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
+        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         
@@ -517,7 +518,7 @@ const App: React.FC = () => {
                     <th className="px-6 py-5">Nomor & Tanggal</th>
                     <th className="px-6 py-5">Tujuan</th>
                     <th className="px-6 py-5">Maksud Perjalanan</th>
-                    <th className="px-6 py-5 text-right">Aksi</th>
+                    <th className="px-6 py-4 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

@@ -153,6 +153,17 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     }));
   };
 
+  const handleTransportChange = (empId: string, totalVal: number) => {
+    setFormData(prev => ({
+      ...prev,
+      costs: (prev.costs || []).map(c => 
+        c.employeeId === empId 
+          ? { ...c, transportBbm: totalVal, seaTransport: 0, airTransport: 0 } 
+          : c
+      )
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.selectedEmployeeIds?.length) { alert("Pilih minimal satu pegawai"); return; }
@@ -358,7 +369,12 @@ export const TravelAssignmentForm: React.FC<Props> = ({
                       </div>
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Transp. (BBM/Laut/Udara)</label>
-                        <input type="text" className="w-full p-2 border border-slate-200 rounded-lg text-[11px] font-bold bg-white" value={formatNumber(cost.transportBbm + cost.seaTransport + cost.airTransport)} onChange={e => updateCost(cost.employeeId, 'transportBbm', parseNumber(e.target.value))} />
+                        <input 
+                          type="text" 
+                          className="w-full p-2 border border-slate-200 rounded-lg text-[11px] font-bold bg-white" 
+                          value={formatNumber(cost.transportBbm + cost.seaTransport + cost.airTransport)} 
+                          onChange={e => handleTransportChange(cost.employeeId, parseNumber(e.target.value))} 
+                        />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase">Taksi / Lainnya</label>

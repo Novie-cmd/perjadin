@@ -607,7 +607,7 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
     <div className="landscape-page bg-white font-['Tahoma'] text-[9pt] leading-tight p-8 text-black">
        <div className="text-center mb-6 mx-auto max-w-[220mm]">
          <p className="font-normal text-[10pt]">
-           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{assignment.purpose}</span> selama <span className="font-bold">{assignment.durationDays} hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {kepala.jabatan} {skpd.namaSkpd} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
+           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{assignment.purpose}</span> selama <span className="font-bold">{assignment.durationDays} ({numberToWords(assignment.durationDays)}) hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {kepala.jabatan} {skpd.namaSkpd} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
          </p>
        </div>
 

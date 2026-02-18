@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, Users, Wallet, MapPin, Search, UserCheck, Truck, Calendar, ArrowRight, UserPlus, Calculator, Map } from 'lucide-react';
+import { Save, Plus, Users, Wallet, MapPin, Search, UserCheck, Truck, Calendar, ArrowRight, UserPlus, Calculator, Map, Info } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -245,17 +245,25 @@ export const TravelAssignmentForm: React.FC<Props> = ({
 
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Calendar size={12} /> Tgl Berangkat</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> Tgl Berangkat</label>
               <input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
             </div>
             <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Calendar size={12} /> Tgl Kembali</label>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Calendar size={12} className="text-slate-400" /> Tgl Kembali</label>
               <input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
             </div>
-            <div className="flex flex-col justify-end">
-              <div className="p-2.5 bg-blue-600 rounded-lg flex items-center justify-center gap-2 text-white shadow-lg shadow-blue-100">
-                <Calculator size={18} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Durasi: {formData.durationDays || 0} Hari</span>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Calculator size={12} className="text-blue-500" /> Jumlah Hari (Otomatis)</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  readOnly 
+                  className="w-full p-2.5 bg-blue-50 border border-blue-200 rounded-lg font-black text-blue-700 outline-none text-center" 
+                  value={`${formData.durationDays || 0} HARI`} 
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400">
+                  <Info size={14} />
+                </div>
               </div>
             </div>
           </div>

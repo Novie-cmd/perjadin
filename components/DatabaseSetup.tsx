@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Database, Link, Key, CheckCircle, ExternalLink, ShieldAlert } from 'lucide-react';
+import { Database, Link, Key, CheckCircle, ShieldAlert } from 'lucide-react';
 
 interface Props {
   onConnect: (url: string, key: string) => void;
@@ -69,14 +69,6 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
            <div className="flex items-center gap-2 text-slate-600 text-[10px] font-bold uppercase">
              <ShieldAlert size={12} /> Koneksi Aman & Terenkripsi
            </div>
-           <a 
-             href="https://supabase.com/dashboard" 
-             target="_blank" 
-             rel="noopener noreferrer"
-             className="text-blue-500 hover:text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition"
-           >
-             Supabase Dashboard <ExternalLink size={10} />
-           </a>
         </div>
       </div>
     </div>

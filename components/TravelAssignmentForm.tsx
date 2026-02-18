@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Employee, TravelAssignment, SubActivity, TravelCost, TravelType, MasterCost, Official } from '../types';
 import { LIST_KOTA_NTB, LIST_PROVINSI_INDONESIA, TRANSPORTATION_MODES } from '../constants';
 import { calculateDays, formatCurrency, formatNumber, parseNumber } from '../utils';
-import { Save, Plus, Users, Wallet, MapPin, Search, UserCheck, Truck, Calendar, ArrowRight, UserPlus, Calculator } from 'lucide-react';
+import { Save, Plus, Users, Wallet, MapPin, Search, UserCheck, Truck, Calendar, ArrowRight, UserPlus, Calculator, Map } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
@@ -184,11 +184,23 @@ export const TravelAssignmentForm: React.FC<Props> = ({
               {subActivities.map(s => (<option key={s.code} value={s.code}>{s.code} - {s.name}</option>))}
             </select>
           </div>
-          <div>
-            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Nomor SPT</label>
-            <input required placeholder="090.1/..." className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.assignmentNumber} onChange={e => setFormData({...formData, assignmentNumber: e.target.value})} />
+          
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-slate-50 pb-6">
+            <div>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Nomor SPT</label>
+              <input required placeholder="090.1/..." className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.assignmentNumber} onChange={e => setFormData({...formData, assignmentNumber: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> Tanggal SPT (Tanda Tangan)</label>
+              <input type="date" required className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.signDate} onChange={e => setFormData({...formData, signDate: e.target.value})} />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1"><MapPin size={12} className="text-blue-500" /> Tempat SPT (Lokasi)</label>
+              <input required placeholder="Mataram" className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.signedAt} onChange={e => setFormData({...formData, signedAt: e.target.value})} />
+            </div>
           </div>
-          <div>
+
+          <div className="md:col-span-2">
             <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Maksud Perjalanan</label>
             <input required className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-blue-100 outline-none" value={formData.purpose} onChange={e => setFormData({...formData, purpose: e.target.value})} />
           </div>

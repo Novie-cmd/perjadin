@@ -113,7 +113,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         </table>
       </div>
 
-      <div className="text-center mb-10"><h1 className="text-2xl font-bold underline uppercase tracking-[0.3em]">KUITANSI</h1></div>
+      <div className="text-center mb-10"><h1 className="text-2xl font-bold underline uppercase tracking-[0.3em]">KWITANSI</h1></div>
       
       <div className="space-y-4 mb-10 pl-4">
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
@@ -134,7 +134,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         <span className="font-bold">Terbilang</span><span className="font-bold">Rp.</span><span className="font-bold text-lg min-w-[150px] text-right">{formatNumber(totalAll)}</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 text-center text-[10.5pt]">
+      <div className="grid grid-cols-3 gap-4 text-center text-[10pt]">
         <div className="flex flex-col">
           <p>Mengetahui/Menyetujui :</p>
           <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan}</p>
@@ -158,7 +158,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         </div>
       </div>
 
-      <div className="mt-12 text-center flex flex-col items-center">
+      <div className="mt-12 text-center flex flex-col items-center text-[10pt]">
         <p className="font-normal">Mengetahui,</p>
         <p className="font-bold uppercase">Pejabat Pelaksana Teknis Kegiatan</p>
         <div className="h-20"></div>

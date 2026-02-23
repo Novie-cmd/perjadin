@@ -29,6 +29,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
     const defaultKepala = officials.find(o => o.role === 'KEPALA');
     const defaultPPTK = officials.find(o => o.role === 'PPTK');
     const defaultBendahara = officials.find(o => o.role === 'BENDAHARA');
+    const defaultPPK = officials.find(o => o.role === 'PPK');
 
     return {
       assignmentNumber: '',
@@ -47,7 +48,8 @@ export const TravelAssignmentForm: React.FC<Props> = ({
       signDate: new Date().toISOString().split('T')[0],
       signerId: defaultKepala?.id || '',
       pptkId: defaultPPTK?.id || '',
-      bendaharaId: defaultBendahara?.id || ''
+      bendaharaId: defaultBendahara?.id || '',
+      ppkId: defaultPPK?.id || ''
     };
   });
 
@@ -308,6 +310,13 @@ export const TravelAssignmentForm: React.FC<Props> = ({
             <select required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" value={formData.bendaharaId} onChange={e => setFormData({...formData, bendaharaId: e.target.value})}>
               <option value="">-- Pilih Bendahara --</option>
               {officials.filter(o => o.role === 'BENDAHARA').map(o => (<option key={o.id} value={o.id}>{o.name}</option>))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-black text-slate-500 uppercase">PPK (Penata Usahaan Keuangan)</label>
+            <select required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" value={formData.ppkId} onChange={e => setFormData({...formData, ppkId: e.target.value})}>
+              <option value="">-- Pilih PPK --</option>
+              {officials.filter(o => o.role === 'PPK').map(o => (<option key={o.id} value={o.id}>{o.name}</option>))}
             </select>
           </div>
         </div>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TravelAssignment, Employee, SKPDConfig, Official, DestinationOfficial } from '../types';
+import { TravelAssignment, Employee, SKPDConfig, Official, DestinationOfficial, SubActivity } from '../types';
 import { numberToWords, formatDateID, formatNumber } from '../utils';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   skpd: SKPDConfig;
   officials: Official[];
   destinationOfficials: DestinationOfficial[];
+  subActivities?: SubActivity[];
 }
 
 const DEFAULT_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Provinsi_Nusa_TENGGARA_BARAT.png/300px-Logo_Provinsi_Nusa_Tenggara_Barat.png";
@@ -89,81 +90,139 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
     nip: skpd.bendaharaNip, 
     jabatan: 'Bendahara Pengeluaran' 
   };
-  return { kepala, pptk, bendahara };
+  const ppk = officials.find(o => o.id === assignment.ppkId) || {
+    name: skpd.ppkNama || '',
+    nip: skpd.ppkNip || '',
+    jabatan: 'Pejabat Penata Usahaan Keuangan'
+  };
+  return { kepala, pptk, bendahara, ppk };
 };
 
-export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials }) => {
-  const { kepala, bendahara, pptk } = getSignatories(assignment, officials, skpd);
+export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials, subActivities }) => {
+  const { kepala, bendahara, pptk, ppk } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
+  const subActivity = subActivities?.find(s => s.code === assignment.subActivityCode);
+
+  // Helper to render code boxes
+  const renderCodeBoxes = (code: string) => {
+    if (!code) return null;
+    const parts = code.split('.');
+    return (
+      <div className="flex gap-1">
+        {parts.map((part, i) => (
+          <div key={i} className="border border-black px-1 min-w-[20px] text-center text-[8pt]">{part}</div>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-[11pt] leading-tight text-black">
-      <Header skpd={skpd} />
-      
-      {/* Box Info Kanan Atas */}
-      <div className="flex justify-end mb-4">
-        <table className="border-collapse border border-black text-[9pt] w-[280px]">
-          <tbody>
-            <tr><td className="border border-black px-2 py-0.5 w-[100px]">Kode Kegiatan</td><td className="border border-black px-2 py-0.5">: {assignment.subActivityCode}</td></tr>
-            <tr><td className="border border-black px-2 py-0.5">Dibukukan Tgl.</td><td className="border border-black px-2 py-0.5">:</td></tr>
-            <tr><td className="border border-black px-2 py-0.5">Nomor Buku</td><td className="border border-black px-2 py-0.5">:</td></tr>
-            <tr><td className="border border-black px-2 py-0.5">Sumber Dana</td><td className="border border-black px-2 py-0.5">:</td></tr>
-          </tbody>
-        </table>
+    <div className="print-page bg-white font-['Tahoma'] text-[10pt] leading-tight text-black p-[10mm]">
+      {/* Top Section */}
+      <div className="flex justify-between items-start mb-6">
+        <div className="font-bold underline text-[9pt]">UNTUK PEMERINTAH :</div>
+        <div className="border border-black p-2 w-[350px] text-[8pt]">
+          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
+            <span>Lembar ke</span><span>:</span><span>1 2 3 4 5 7</span>
+          </div>
+          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
+            <span>Kb no</span><span>:</span><span></span>
+          </div>
+          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
+            <span>Tanggal</span><span>:</span><span></span>
+          </div>
+          <div className="grid grid-cols-[100px_10px_1fr] mb-1 items-center">
+            <span>Kode Kegiatan</span><span>:</span>
+            <div className="flex gap-1">
+              {assignment.subActivityCode.split('.').map((p, i) => (
+                <span key={i} className="border border-black px-1 min-w-[18px] text-center">{p}</span>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-[100px_10px_1fr] mb-1 items-center">
+            <span>Kode Rekening</span><span>:</span>
+            <div className="flex gap-1">
+              {(subActivity?.budgetCode || '').split('.').map((p, i) => (
+                <span key={i} className="border border-black px-1 min-w-[18px] text-center">{p}</span>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-[100px_10px_1fr]">
+            <span>Biro Organisasi</span><span>:</span><span className="font-bold uppercase">{skpd.namaSkpd}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="text-center mb-10"><h1 className="text-2xl font-bold underline uppercase tracking-[0.3em]">KWITANSI</h1></div>
+      <div className="text-center mb-8">
+        <h1 className="text-[16pt] font-bold underline uppercase tracking-[0.2em]">KUITANSI</h1>
+      </div>
       
-      <div className="space-y-4 mb-10 pl-4">
+      <div className="space-y-3 mb-8 pl-2">
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
-          <span>Terima dari</span><span>:</span><span className="font-bold uppercase leading-tight">{kepala.jabatan} {skpd.namaSkpd}</span>
+          <span>Terima dari</span><span>:</span>
+          <span className="font-normal uppercase leading-tight">
+            {kepala.jabatan} {skpd.namaSkpd} di {skpd.lokasi || 'Mataram'}
+          </span>
         </div>
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
-          <span>Banyaknya</span><span>:</span><span className="font-bold italic">///// {numberToWords(totalAll)} Rupiah /////</span>
+          <span>Banyaknya Uang</span><span>:</span>
+          <span className="font-bold italic">///// {numberToWords(totalAll)} Rupiah /////</span>
         </div>
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
-          <span>Untuk Pembayaran</span><span>:</span>
+          <span>Untuk Keperluan Pembayaran</span><span>:</span>
           <span className="text-justify leading-relaxed">
             Belanja Perjalanan Dinas Dalam Daerah ke {assignment.destination} selama {assignment.durationDays} hari Dalam rangka {assignment.purpose} sesuai Surat Perintah Tugas Kepala {skpd.namaSkpd} Nomor : {assignment.assignmentNumber} tanggal {formatDateID(assignment.signDate)} A.n. {firstEmp?.name}, sesuai daftar penerimaan terlampir
           </span>
         </div>
       </div>
 
-      <div className="border-t-2 border-b-2 border-black py-2 mb-10 flex items-center px-4 gap-4 w-fit">
-        <span className="font-bold">Terbilang</span><span className="font-bold">Rp.</span><span className="font-bold text-lg min-w-[150px] text-right">{formatNumber(totalAll)}</span>
+      <div className="mb-10 flex items-center px-2 gap-4">
+        <span className="font-bold text-[14pt]">Terbilang Rp.</span>
+        <div className="border-b-2 border-black pb-1 min-w-[200px]">
+          <span className="font-bold text-[16pt]">{formatNumber(totalAll)}</span>
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 text-center text-[10pt]">
+      {/* Signature Row 1 */}
+      <div className="grid grid-cols-3 gap-2 text-center text-[9pt] mb-10">
         <div className="flex flex-col">
           <p>Mengetahui/Menyetujui :</p>
-          <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan}</p>
-          <div className="h-20"></div>
+          <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan} {skpd.namaSkpd},</p>
+          <div className="h-16"></div>
           <p className="font-bold underline uppercase">{kepala.name}</p>
           <p>NIP. {kepala.nip}</p>
         </div>
         <div className="flex flex-col">
           <p>Lunas dibayar :</p>
           <p className="font-bold uppercase leading-tight h-10">{bendahara.jabatan},</p>
-          <div className="h-20"></div>
+          <div className="h-16"></div>
           <p className="font-bold underline uppercase">{bendahara.name}</p>
           <p>NIP. {bendahara.nip}</p>
         </div>
         <div className="flex flex-col">
           <p>{formatMonthYear(assignment.signDate, skpd.lokasi)}</p>
           <p className="font-bold uppercase leading-tight h-10">Yang menerima uang,</p>
-          <div className="h-20"></div>
+          <div className="h-16 border-b border-black w-3/4 mx-auto mb-1"></div>
           <p className="font-bold underline uppercase">{firstEmp?.name}</p>
           <p>NIP. {firstEmp?.nip}</p>
         </div>
       </div>
 
-      <div className="mt-12 text-center flex flex-col items-center text-[10pt]">
-        <p className="font-normal">Mengetahui,</p>
-        <p className="font-bold uppercase">Pejabat Pelaksana Teknis Kegiatan</p>
-        <div className="h-20"></div>
-        <p className="font-bold underline uppercase">{pptk.name}</p>
-        <p>NIP. {pptk.nip}</p>
+      {/* Signature Row 2 */}
+      <div className="grid grid-cols-2 gap-20 text-center text-[9pt]">
+        <div className="flex flex-col">
+          <p className="font-bold uppercase leading-tight h-10">Pejabat Pelaksana Teknis Kegiatan</p>
+          <div className="h-16"></div>
+          <p className="font-bold underline uppercase">{pptk.name}</p>
+          <p>NIP. {pptk.nip}</p>
+        </div>
+        <div className="flex flex-col">
+          <p className="font-bold uppercase leading-tight h-10">Pejabat Penata Usahaan Keuangan</p>
+          <div className="h-16"></div>
+          <p className="font-bold underline uppercase">{ppk.name}</p>
+          <p>NIP. {ppk.nip}</p>
+        </div>
       </div>
     </div>
   );
@@ -375,19 +434,19 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
             </td>
           </tr>
           <tr>
-            <td className="py-2 font-bold">Untuk</td>
+            <td className="py-2 font-bold">Tujuan</td>
             <td className="text-center">:</td>
-            <td className="py-2 text-justify">{assignment.purpose}</td>
+            <td className="py-2">{assignment.destination}</td>
           </tr>
           <tr>
-            <td className="py-1 font-bold">Tanggal</td>
+            <td className="py-1 font-bold">Lamanya</td>
             <td className="text-center">:</td>
             <td className="py-1">{formatDateID(assignment.startDate)} s.d {formatDateID(assignment.endDate)} ({assignment.durationDays} Hari)</td>
           </tr>
           <tr>
-            <td className="py-1 font-bold">Daerah Tujuan</td>
+            <td className="py-1 font-bold">Untuk</td>
             <td className="text-center">:</td>
-            <td className="py-1">{assignment.destination}</td>
+            <td className="py-1 text-justify">{assignment.purpose}</td>
           </tr>
           <tr>
             <td className="py-1 font-bold">Biaya</td>

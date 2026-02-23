@@ -56,6 +56,8 @@ const App: React.FC = () => {
     bendaharaNip: TREASURER.nip,
     pptkNama: 'Novi Haryanto, S.Adm',
     pptkNip: '197111201991031003',
+    ppkNama: '',
+    ppkNip: '',
     logo: undefined
   });
   const [masterCosts, setMasterCosts] = useState<MasterCost[]>([]);
@@ -195,7 +197,10 @@ const App: React.FC = () => {
         kepalaNama: skpdData.kepala_nama, kepalaNip: skpdData.kepala_nip, 
         kepalaJabatan: skpdData.kepala_jabatan, bendaharaNama: skpdData.bendahara_nama, 
         bendaharaNip: skpdData.bendahara_nip, pptkNama: skpdData.pptk_nama, 
-        pptkNip: skpdData.pptk_nip, logo: skpdData.logo 
+        pptkNip: skpdData.pptk_nip, 
+        ppkNama: skpdData.ppk_nama,
+        ppkNip: skpdData.ppk_nip,
+        logo: skpdData.logo 
       });
       if (costData) setMasterCosts(costData.map(c => ({ 
         destination: c.destination, dailyAllowance: Number(c.daily_allowance), 
@@ -219,6 +224,7 @@ const App: React.FC = () => {
         assignmentNumber: a.assignment_number, subActivityCode: a.sub_activity_code, 
         startDate: a.start_date, endDate: a.end_date, durationDays: a.duration_days, 
         signerId: a.signer_id, pptkId: a.pptk_id, bendaharaId: a.bendahara_id, 
+        ppkId: a.ppk_id,
         signDate: a.sign_date, signedAt: a.signed_at,
         destinationOfficialIds: a.destination_official_ids || []
       })));
@@ -242,7 +248,7 @@ const App: React.FC = () => {
       start_date: data.startDate, end_date: data.endDate, duration_days: data.durationDays, 
       selected_employee_ids: data.selectedEmployeeIds, costs: data.costs, 
       signed_at: data.signedAt, sign_date: data.signDate, pptk_id: data.pptkId, 
-      signer_id: data.signerId, bendahara_id: data.bendaharaId,
+      signer_id: data.signerId, bendahara_id: data.bendaharaId, ppk_id: data.ppkId,
       destination_official_ids: data.destinationOfficialIds || []
     });
     if (error) alert(`Gagal menyimpan: ${error.message}`);
@@ -314,7 +320,8 @@ const App: React.FC = () => {
       employees, 
       skpd: skpdConfig, 
       officials, 
-      destinationOfficials: activeDestOfficial ? [activeDestOfficial] : destinationOfficials 
+      destinationOfficials: activeDestOfficial ? [activeDestOfficial] : destinationOfficials,
+      subActivities
     };
 
     return (
@@ -467,7 +474,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} />}
+        { viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, ppk_nama: cfg.ppkNama, ppk_nip: cfg.ppkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} /> }
         {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
         

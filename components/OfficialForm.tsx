@@ -79,6 +79,7 @@ export const OfficialForm: React.FC<Props> = ({ officials, onSave, onDelete }) =
               <option value="KEPALA">Kepala SKPD</option>
               <option value="PPTK">PPTK (Pejabat Pelaksana)</option>
               <option value="BENDAHARA">Bendahara</option>
+              <option value="PPK">PPK (Pejabat Penata Usahaan Keuangan)</option>
             </select>
           </div>
           <div className="lg:col-span-4 flex gap-2 justify-end mt-2">
@@ -113,7 +114,8 @@ export const OfficialForm: React.FC<Props> = ({ officials, onSave, onDelete }) =
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
                       off.role === 'KEPALA' ? 'bg-blue-100 text-blue-700' :
                       off.role === 'PPTK' ? 'bg-amber-100 text-amber-700' :
-                      'bg-emerald-100 text-emerald-700'
+                      off.role === 'BENDAHARA' ? 'bg-emerald-100 text-emerald-700' :
+                      'bg-purple-100 text-purple-700'
                     }`}>
                       {off.role}
                     </span>

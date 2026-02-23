@@ -232,6 +232,28 @@ export const SKPDForm: React.FC<Props> = ({ config, onSave }) => {
               />
             </div>
           </div>
+
+          <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <h4 className="text-xs font-black text-purple-600 uppercase border-b pb-2 flex items-center gap-2">
+              <UserCheck size={14} /> PPK (Pejabat Penata Usahaan Keuangan)
+            </h4>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-black text-slate-400 uppercase">Nama Lengkap & Gelar</label>
+              <input 
+                className="w-full p-2.5 border border-slate-200 rounded-lg font-bold text-slate-700 focus:ring-2 focus:ring-purple-100 outline-none"
+                value={formData.ppkNama || ''}
+                onChange={e => setFormData({...formData, ppkNama: e.target.value})}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-black text-slate-400 uppercase">NIP</label>
+              <input 
+                className="w-full p-2.5 border border-slate-200 rounded-lg font-mono font-bold text-slate-700 focus:ring-2 focus:ring-purple-100 outline-none"
+                value={formData.ppkNip || ''}
+                onChange={e => setFormData({...formData, ppkNip: e.target.value})}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

@@ -14,7 +14,7 @@ export interface Official {
   name: string;
   nip: string;
   jabatan: string;
-  role: 'KEPALA' | 'PPTK' | 'BENDAHARA';
+  role: 'KEPALA' | 'PPTK' | 'BENDAHARA' | 'PPK';
 }
 
 export interface DestinationOfficial {
@@ -37,6 +37,8 @@ export interface SKPDConfig {
   bendaharaNip: string;
   pptkNama: string;
   pptkNip: string;
+  ppkNama?: string;
+  ppkNip?: string;
   logo?: string;
 }
 
@@ -97,6 +99,7 @@ export interface TravelAssignment {
   pptkId?: string;
   signerId?: string;
   bendaharaId?: string;
+  ppkId?: string;
   destinationOfficialIds?: string[]; 
 }
 

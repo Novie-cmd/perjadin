@@ -459,7 +459,7 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
       <div className="mt-12 flex justify-end">
         <div className="w-[320px] text-left pl-4">
           <p>Ditetapkan di {skpd.lokasi || 'Mataram'}</p>
-          <p className="mb-4">Pada Tanggal {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+          <p className="mb-4">Pada Tanggal {formatDateID(assignment.signDate)}</p>
           <div className="min-h-[60px]">
             <p className="font-bold uppercase leading-tight">{kepala.jabatan}</p>
           </div>

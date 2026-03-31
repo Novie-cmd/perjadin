@@ -314,7 +314,7 @@ export const TravelAssignmentForm: React.FC<Props> = ({
           </div>
           <div className="space-y-1">
             <label className="block text-[10px] font-black text-slate-500 uppercase">PPK (Penata Usahaan Keuangan)</label>
-            <select required className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" value={formData.ppkId} onChange={e => setFormData({...formData, ppkId: e.target.value})}>
+            <select className="w-full p-2.5 border border-slate-200 rounded-lg mt-1 bg-white font-bold text-slate-700" value={formData.ppkId} onChange={e => setFormData({...formData, ppkId: e.target.value})}>
               <option value="">-- Pilih PPK --</option>
               {officials.filter(o => o.role === 'PPK').map(o => (<option key={o.id} value={o.id}>{o.name}</option>))}
             </select>

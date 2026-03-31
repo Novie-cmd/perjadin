@@ -210,19 +210,21 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
       </div>
 
       {/* Signature Row 2 */}
-      <div className="grid grid-cols-2 gap-20 text-center text-[9pt]">
+      <div className={`grid ${ppk.name ? 'grid-cols-2 gap-20' : 'grid-cols-1'} text-center text-[9pt]`}>
         <div className="flex flex-col">
           <p className="font-bold uppercase leading-tight h-10">Pejabat Pelaksana Teknis Kegiatan</p>
           <div className="h-16"></div>
           <p className="font-bold underline uppercase">{pptk.name}</p>
           <p>NIP. {pptk.nip}</p>
         </div>
-        <div className="flex flex-col">
-          <p className="font-bold uppercase leading-tight h-10">Pejabat Penata Usahaan Keuangan</p>
-          <div className="h-16"></div>
-          <p className="font-bold underline uppercase">{ppk.name}</p>
-          <p>NIP. {ppk.nip}</p>
-        </div>
+        {ppk.name && (
+          <div className="flex flex-col">
+            <p className="font-bold uppercase leading-tight h-10">Pejabat Penata Usahaan Keuangan</p>
+            <div className="h-16"></div>
+            <p className="font-bold underline uppercase">{ppk.name}</p>
+            <p>NIP. {ppk.nip}</p>
+          </div>
+        )}
       </div>
     </div>
   );

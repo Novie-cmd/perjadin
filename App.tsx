@@ -145,8 +145,8 @@ const App: React.FC = () => {
   };
 
   const handleDisconnectDb = () => {
-    localStorage.removeItem('SB_URL', url);
-    localStorage.removeItem('SB_KEY', key);
+    localStorage.removeItem('SB_URL');
+    localStorage.removeItem('SB_KEY');
     window.location.reload();
   };
 

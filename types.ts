@@ -14,7 +14,7 @@ export interface Official {
   name: string;
   nip: string;
   jabatan: string;
-  role: 'KEPALA' | 'PPTK' | 'BENDAHARA' | 'PPK';
+  role: 'KEPALA' | 'PLH_KEPALA' | 'PPTK' | 'BENDAHARA' | 'PPK';
 }
 
 export interface DestinationOfficial {

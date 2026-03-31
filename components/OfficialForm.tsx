@@ -77,6 +77,7 @@ export const OfficialForm: React.FC<Props> = ({ officials, onSave, onDelete }) =
               onChange={e => setFormData({...formData, role: e.target.value as any})}
             >
               <option value="KEPALA">Kepala SKPD</option>
+              <option value="PLH_KEPALA">Plh. Kepala Dinas</option>
               <option value="PPTK">PPTK (Pejabat Pelaksana)</option>
               <option value="BENDAHARA">Bendahara</option>
               <option value="PPK">PPK (Pejabat Penata Usahaan Keuangan)</option>
@@ -113,11 +114,12 @@ export const OfficialForm: React.FC<Props> = ({ officials, onSave, onDelete }) =
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
                       off.role === 'KEPALA' ? 'bg-blue-100 text-blue-700' :
+                      off.role === 'PLH_KEPALA' ? 'bg-indigo-100 text-indigo-700' :
                       off.role === 'PPTK' ? 'bg-amber-100 text-amber-700' :
                       off.role === 'BENDAHARA' ? 'bg-emerald-100 text-emerald-700' :
                       'bg-purple-100 text-purple-700'
                     }`}>
-                      {off.role}
+                      {off.role.replace('_', ' ')}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">

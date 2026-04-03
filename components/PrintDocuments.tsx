@@ -90,11 +90,11 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
     nip: skpd.bendaharaNip, 
     jabatan: 'Bendahara Pengeluaran' 
   };
-  const ppk = officials.find(o => o.id === assignment.ppkId) || {
+  const ppk = assignment.ppkId ? (officials.find(o => o.id === assignment.ppkId) || {
     name: skpd.ppkNama || '',
     nip: skpd.ppkNip || '',
     jabatan: 'Pejabat Penata Usahaan Keuangan'
-  };
+  }) : { name: '', nip: '', jabatan: '' };
   return { kepala, pptk, bendahara, ppk };
 };
 

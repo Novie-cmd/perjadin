@@ -27,11 +27,129 @@ import {
   LayoutDashboard, Users, FileText, Printer, ChevronLeft, 
   Trash2, Calendar, Plus, Database, Edit2, Building2, 
   BarChart3, RefreshCw, LogOut, ShieldCheck, 
-  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers, MapPin, PlusCircle
+  Landmark, TrendingUp, AlertCircle, Coins, Wallet, UserSearch, AlertTriangle, UserPlus, Layers, MapPin, PlusCircle,
+  Copy, Check, ExternalLink, HelpCircle
 } from 'lucide-react';
 // Import formatDateID to fix "Cannot find name 'formatDateID'" error
 import { formatNumber, formatDateID } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
+
+const SQL_SETUP_SCRIPT = `-- ==========================================
+-- SCRIPT SETUP DATABASE SUPABASE (FULL SCHEMA)
+-- SIPD LITE - PERJALANAN DINAS
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS employees (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    nip TEXT NOT NULL,
+    pangkat_gol TEXT,
+    jabatan TEXT,
+    representation_luar NUMERIC DEFAULT 0,
+    representation_dalam NUMERIC DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS officials (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    nip TEXT NOT NULL,
+    jabatan TEXT NOT NULL,
+    role TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS destination_officials (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    nip TEXT NOT NULL,
+    jabatan TEXT NOT NULL,
+    instansi TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS skpd_config (
+    id TEXT PRIMARY KEY DEFAULT 'main',
+    provinsi TEXT,
+    nama_skpd TEXT NOT NULL,
+    alamat TEXT NOT NULL,
+    lokasi TEXT NOT NULL,
+    kepala_nama TEXT NOT NULL,
+    kepala_nip TEXT NOT NULL,
+    kepala_jabatan TEXT NOT NULL,
+    bendahara_nama TEXT NOT NULL,
+    bendahara_nip TEXT NOT NULL,
+    pptk_nama TEXT NOT NULL,
+    pptk_nip TEXT NOT NULL,
+    ppk_nama TEXT,
+    ppk_nip TEXT,
+    logo TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS master_costs (
+    destination TEXT PRIMARY KEY,
+    daily_allowance NUMERIC DEFAULT 0,
+    lodging NUMERIC DEFAULT 0,
+    transport_bbm NUMERIC DEFAULT 0,
+    sea_transport NUMERIC DEFAULT 0,
+    air_transport NUMERIC DEFAULT 0,
+    taxi NUMERIC DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sub_activities (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    budget_code TEXT,
+    anggaran NUMERIC DEFAULT 0,
+    spd TEXT DEFAULT '0',
+    triwulan1 NUMERIC DEFAULT 0,
+    triwulan2 NUMERIC DEFAULT 0,
+    triwulan3 NUMERIC DEFAULT 0,
+    triwulan4 NUMERIC DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS assignments (
+    id TEXT PRIMARY KEY,
+    assignment_number TEXT NOT NULL,
+    sub_activity_code TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    origin TEXT NOT NULL,
+    travel_type TEXT NOT NULL,
+    transportation TEXT NOT NULL,
+    destination TEXT NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    duration_days INTEGER NOT NULL,
+    selected_employee_ids TEXT[] NOT NULL,
+    costs JSONB NOT NULL,
+    signed_at TEXT NOT NULL,
+    sign_date TEXT NOT NULL,
+    pptk_id TEXT,
+    signer_id TEXT,
+    bendahara_id TEXT,
+    ppk_id TEXT,
+    destination_official_ids TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS destination_official_ids TEXT[];
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS ppk_id TEXT;
+
+ALTER TABLE skpd_config ADD COLUMN IF NOT EXISTS ppk_nama TEXT;
+ALTER TABLE skpd_config ADD COLUMN IF NOT EXISTS ppk_nip TEXT;
+
+ALTER TABLE employees DISABLE ROW LEVEL SECURITY;
+ALTER TABLE officials DISABLE ROW LEVEL SECURITY;
+ALTER TABLE destination_officials DISABLE ROW LEVEL SECURITY;
+ALTER TABLE skpd_config DISABLE ROW LEVEL SECURITY;
+ALTER TABLE master_costs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE assignments DISABLE ROW LEVEL SECURITY;
+
+NOTIFY pgrst, 'reload schema';`;
 
 const App: React.FC = () => {
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
@@ -40,6 +158,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInvalidApiKey, setIsInvalidApiKey] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [officials, setOfficials] = useState<Official[]>([]);
@@ -127,12 +246,19 @@ const App: React.FC = () => {
   useEffect(() => {
     let savedUrl = localStorage.getItem('SB_URL');
     let savedKey = localStorage.getItem('SB_KEY');
+    const wasDisconnected = localStorage.getItem('SB_DISCONNECTED') === 'true';
     
     if (!savedUrl || !savedKey) {
-      savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
-      savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
-      localStorage.setItem('SB_URL', savedUrl);
-      localStorage.setItem('SB_KEY', savedKey);
+      if (wasDisconnected) {
+        setLoading(false);
+        setDbConfigured(false);
+        return;
+      } else {
+        savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
+        savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
+        localStorage.setItem('SB_URL', savedUrl);
+        localStorage.setItem('SB_KEY', savedKey);
+      }
     }
 
     if (savedUrl && savedKey) {
@@ -147,14 +273,17 @@ const App: React.FC = () => {
   const handleConnectDb = (url: string, key: string) => {
     localStorage.setItem('SB_URL', url);
     localStorage.setItem('SB_KEY', key);
+    localStorage.removeItem('SB_DISCONNECTED');
     const client = createClient(url, key);
     setSupabase(client);
     setDbConfigured(true);
+    setError(null);
   };
 
   const handleDisconnectDb = () => {
     localStorage.removeItem('SB_URL');
     localStorage.removeItem('SB_KEY');
+    localStorage.setItem('SB_DISCONNECTED', 'true');
     window.location.reload();
   };
 
@@ -276,33 +405,167 @@ const App: React.FC = () => {
   if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
   if (loading) return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center flex-col"><RefreshCw className="animate-spin text-blue-400 mb-4" size={48} /><h2 className="font-black text-xl tracking-widest italic">MENGHUBUNGKAN...</h2></div>;
   
-  if (error) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center font-['Tahoma']">
-      <div className="max-w-md bg-slate-900 p-8 rounded-3xl shadow-2xl border border-red-900/30 animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-          <AlertTriangle size={32} />
-        </div>
-        <h2 className="text-xl font-black text-white mb-2 uppercase tracking-tight">
-          {isInvalidApiKey ? 'Kunci API Tidak Valid' : 'Koneksi Bermasalah'}
-        </h2>
-        <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-          {isInvalidApiKey 
-            ? 'Supabase Anon Key yang Anda masukkan salah atau sudah kadaluarsa. Pastikan Anda menyalin "anon public key" dengan benar dari Project Settings > API.' 
-            : error.toLowerCase().includes('relation') || error.toLowerCase().includes('does not exist') || error.toLowerCase().includes('42p01')
-              ? 'Tabel database tidak ditemukan atau belum dibuat di Supabase Anda. Silakan buka file "setup.sql" (buka tab script SQL di setup) lalu salin dan jalankan seluruh isi file tersebut di SQL Editor Supabase Anda untuk melakukan inisialisasi database.'
-              : `Terjadi kesalahan saat menghubungi database: ${error}`}
-        </p>
-        <div className="flex flex-col gap-3">
-          <button onClick={refreshData} className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition shadow-lg">
-            <RefreshCw size={14} /> Coba Lagi
-          </button>
-          <button onClick={handleDisconnectDb} className="text-red-400 hover:bg-red-500/10 font-black uppercase text-[10px] tracking-widest py-3 border border-red-900/30 rounded-xl transition">
-            Reset & Masukkan Kunci Baru
-          </button>
+  if (error) {
+    const handleCopySql = () => {
+      navigator.clipboard.writeText(SQL_SETUP_SCRIPT);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 2000);
+    };
+
+    const isRelationErr = error.toLowerCase().includes('relation') || error.toLowerCase().includes('does not exist') || error.toLowerCase().includes('42p01');
+    const isFetchErr = error.toLowerCase().includes('failed to fetch') || error.toLowerCase().includes('networkerror') || error.toLowerCase().includes('fetch failed');
+
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 md:p-8 font-sans">
+        <div className="max-w-3xl w-full bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-6 md:p-10 animate-in zoom-in-95 duration-300">
+          <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6 mb-8 border-b border-slate-800 pb-6">
+            <div className="flex items-center gap-4 text-center md:text-left flex-col md:flex-row">
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center border border-red-500/20 shadow-lg shadow-red-500/5">
+                <AlertTriangle size={32} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Koneksi Database Gagal</h2>
+                <p className="text-slate-400 text-xs font-bold mt-1 uppercase tracking-wider flex items-center justify-center md:justify-start gap-1">
+                  Status: <span className="text-red-500">{isFetchErr ? 'Koneksi Offline / Database Paused' : 'Koneksi Bermasalah'}</span>
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2.5 w-full md:w-auto justify-center">
+              <button onClick={refreshData} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition shadow-lg shadow-blue-900/30">
+                <RefreshCw size={14} /> Hubungkan Ulang
+              </button>
+              <button onClick={handleDisconnectDb} className="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-5 py-2.5 rounded-xl font-bold uppercase text-xs border border-slate-700 transition">
+                Ganti Kunci / URL
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-red-500/5 border border-red-900/30 rounded-2xl p-4 mb-8">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-red-950/20">
+              <span className="text-[10px] font-black uppercase text-red-400 tracking-wider">Pesan Kesalahan Asli (Raw Error):</span>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(error);
+                  alert('Pesan kesalahan berhasil disalin!');
+                }}
+                className="text-[10px] bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold px-2 py-1 rounded transition flex items-center gap-1"
+              >
+                <Copy size={10} /> Salin Error
+              </button>
+            </div>
+            <p className="font-mono text-xs text-red-300/90 break-all leading-relaxed bg-black/30 p-3 rounded-xl border border-red-950/50">
+              {error}
+            </p>
+            {isFetchErr && (
+              <div className="mt-3 text-xs text-amber-400 font-bold bg-amber-505/10 border border-amber-900/20 p-2.5 rounded-lg flex items-center gap-2">
+                <AlertCircle size={14} className="flex-none" />
+                <span>Mendeteksi masalah koneksi browser! Layanan Supabase Anda tidak dapat dihubungi. Ikuti panduan di bawah ini.</span>
+              </div>
+            )}
+          </div>
+
+          <h3 className="text-sm font-black text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+            <HelpCircle size={16} className="text-blue-500" /> Panduan Penyelesaian Masalah (Troubleshooting):
+          </h3>
+
+          <div className="space-y-4">
+            {/* Penyebab 1: Database Ditangguhkan */}
+            <div className={`p-4 rounded-2xl border transition-all ${isFetchErr ? 'bg-amber-950/20 border-amber-900/40 shadow-lg shadow-amber-950/10' : 'bg-slate-800/60 border-slate-700'}`}>
+              <div className="flex items-start justify-between flex-wrap gap-2">
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <span className="w-5 h-5 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-xs font-black">1</span>
+                  Project Supabase Anda Ditangguhkan (Paused) - <span className="text-red-400">KEMUNGKINAN BESAR</span>
+                </h4>
+                {isFetchErr && (
+                  <span className="bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded inline-flex items-center gap-1 text-[10px] font-black tracking-widest uppercase">
+                    <AlertCircle size={10} /> Terdeteksi!
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed pl-7 mt-2">
+                Project Supabase gratisan (Free Tier) otomatis ditangguhkan setelah 7 hari tidak aktif. Jika ini terjadi, browser Anda akan menghasilkan error <code className="text-amber-400 bg-amber-950/30 px-1 rounded font-mono">Failed to fetch</code>.
+              </p>
+              <p className="text-slate-400 text-xs leading-relaxed pl-7 mt-1 font-bold text-slate-300">
+                Cara mengaktifkan kembali:
+              </p>
+              <ul className="list-disc pl-12 text-slate-400 text-xs space-y-1 mt-1">
+                <li>Buka dashboard Supabase.</li>
+                <li>Temukan proyek Anda yang bernama <span className="text-teal-400 font-mono">bligotrxzpisallhqzgt</span>.</li>
+                <li>Klik tombol <strong className="text-emerald-400">Restore Project</strong> atau <strong className="text-emerald-400">Restore</strong> pada proyek tersebut.</li>
+                <li>Tunggu 1-2 menit hingga status proyek kembali aktif (Active), kemudian klik tombol <strong className="text-blue-400">Hubungkan Ulang</strong> di atas.</li>
+              </ul>
+              <div className="mt-3 pl-7">
+                <a 
+                  href="https://supabase.com/dashboard" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg border border-slate-700 inline-flex items-center gap-1.5 transition"
+                >
+                  Buka Dashboard Supabase <ExternalLink size={11} />
+                </a>
+              </div>
+            </div>
+
+            {/* Penyebab 3: Adblocker memblokir Supabase */}
+            <div className={`p-4 rounded-2xl border transition-all ${isFetchErr ? 'bg-amber-950/10 border-amber-900/20' : 'bg-slate-800/60 border-slate-700'}`}>
+              <h4 className="font-bold text-sm text-white flex items-center gap-2 mb-2">
+                <span className="w-5 h-5 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-xs font-black">2</span>
+                Koneksi Diblokir oleh Ekstensi Browser / Adblocker / Ekstensi VPN
+              </h4>
+              <p className="text-slate-400 text-xs leading-relaxed pl-7">
+                Beberapa ekstensi Adblocker (seperti uBlock Origin, Adblock Plus), beberapa DNS pribadi, atau VPN, memblokir request ke domain <code className="text-blue-400 bg-blue-950/30 px-1 rounded font-mono">*.supabase.co</code> karena dianggap sebagai pelacak. Coba matikan Adblocker Anda pada tab ini atau jalankan di tab mode Incognito (Penyamaran), lalu coba hubungkan ulang.
+              </p>
+            </div>
+
+            {/* Penyebab 4: URL / Key Salah */}
+            <div className="p-4 bg-slate-800/60 border border-slate-750 rounded-2xl">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2 mb-2">
+                <span className="w-5 h-5 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center text-xs font-black">3</span>
+                URL Supabase atau Anon Key Tidak Sesuai
+              </h4>
+              <p className="text-slate-400 text-xs leading-relaxed pl-7">
+                Pastikan Anda menggunakan <strong>Project URL</strong> yang benar (diawali dengan <code className="text-indigo-400 bg-indigo-950/30 px-1 rounded font-mono">https://...</code>) dan menyalin <strong>anon public key</strong> (bukan service_role key). Jika ragu, klik tombol <code className="text-red-400 font-bold bg-red-950/30 px-1 rounded text-[11px]">Ganti Kunci / URL</code> di atas untuk memasukkan ulang kredensial baru.
+              </p>
+            </div>
+
+            {/* Penyebab 2: Tabel SQL Belum Dibuat */}
+            <div className={`p-4 rounded-2xl border transition-all ${isRelationErr ? 'bg-amber-950/20 border-amber-900/40 shadow-lg shadow-amber-950/10' : 'bg-slate-800/30 border-slate-800'}`}>
+              <div className="flex items-start justify-between flex-wrap gap-2">
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <span className="w-5 h-5 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center text-xs font-black">4</span>
+                  Tabel Database Belum Dibuat / Kosong (Hanya dijalankan setelah koneksi sukses)
+                </h4>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed pl-7 mt-2">
+                Jika koneksi sudah sukses namun tabel masih kosong, salin script SQL penuh di bawah ini dan jalankan di menu <strong>SQL Editor</strong> database Anda.
+              </p>
+              
+              <div className="mt-4 pl-7 space-y-3">
+                <div className="flex gap-2 flex-wrap">
+                  <button 
+                    onClick={handleCopySql} 
+                    className={`font-black text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-md ${
+                      copiedSql 
+                        ? 'bg-emerald-600 text-white' 
+                        : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
+                    }`}
+                  >
+                    {copiedSql ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedSql ? 'Berhasil Disalin!' : 'Salin Script SQL Lengkap'}
+                  </button>
+                </div>
+                
+                <div className="bg-black/40 border border-slate-850 rounded-xl p-3 max-h-40 overflow-y-auto font-mono text-[10px] text-slate-500">
+                  <pre>{SQL_SETUP_SCRIPT}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   if (viewMode === ViewMode.PRINT_PREVIEW && (activeAssignment || activeDestOfficial)) {
     // Logic khusus Pejabat Luar dari Master Data

@@ -7,8 +7,8 @@ interface Props {
 }
 
 export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
-  const [url, setUrl] = useState('');
-  const [key, setKey] = useState('');
+  const [url, setUrl] = useState('https://bligotrxzpisallhqzgt.supabase.co');
+  const [key, setKey] = useState('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

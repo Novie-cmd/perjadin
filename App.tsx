@@ -125,8 +125,16 @@ const App: React.FC = () => {
   }, [subActivities, assignments]);
 
   useEffect(() => {
-    const savedUrl = localStorage.getItem('SB_URL');
-    const savedKey = localStorage.getItem('SB_KEY');
+    let savedUrl = localStorage.getItem('SB_URL');
+    let savedKey = localStorage.getItem('SB_KEY');
+    
+    if (!savedUrl || !savedKey) {
+      savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
+      savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
+      localStorage.setItem('SB_URL', savedUrl);
+      localStorage.setItem('SB_KEY', savedKey);
+    }
+
     if (savedUrl && savedKey) {
       const client = createClient(savedUrl, savedKey);
       setSupabase(client);
@@ -280,7 +288,9 @@ const App: React.FC = () => {
         <p className="text-slate-400 text-sm mb-6 leading-relaxed">
           {isInvalidApiKey 
             ? 'Supabase Anon Key yang Anda masukkan salah atau sudah kadaluarsa. Pastikan Anda menyalin "anon public key" dengan benar dari Project Settings > API.' 
-            : `Terjadi kesalahan saat menghubungi database: ${error}`}
+            : error.toLowerCase().includes('relation') || error.toLowerCase().includes('does not exist') || error.toLowerCase().includes('42p01')
+              ? 'Tabel database tidak ditemukan atau belum dibuat di Supabase Anda. Silakan buka file "setup.sql" (buka tab script SQL di setup) lalu salin dan jalankan seluruh isi file tersebut di SQL Editor Supabase Anda untuk melakukan inisialisasi database.'
+              : `Terjadi kesalahan saat menghubungi database: ${error}`}
         </p>
         <div className="flex flex-col gap-3">
           <button onClick={refreshData} className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 transition shadow-lg">

@@ -39,7 +39,32 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
     skpd.namaSkpd.toUpperCase().includes(provinsiValue.toUpperCase().replace('PROVINSI ', 'PROV. '))
   );
   
-  const nameLen = skpd.namaSkpd.length;
+  const cleanNamaSkpd = skpd.namaSkpd.trim();
+  const ucNamaSkpd = cleanNamaSkpd.toUpperCase();
+  
+  let renderTwoRows = false;
+  let displayRow1 = cleanNamaSkpd;
+  let displayRow2 = "";
+
+  if (ucNamaSkpd.includes("BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI") && ucNamaSkpd.includes("PROVINSI NUSA TENGGARA BARAT")) {
+    renderTwoRows = true;
+    displayRow1 = "BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI";
+    displayRow2 = "PROVINSI NUSA TENGGARA BARAT";
+  } else if (ucNamaSkpd === "BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI") {
+    renderTwoRows = true;
+    displayRow1 = "BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI";
+    displayRow2 = "PROVINSI NUSA TENGGARA BARAT";
+  } else {
+    // Check if it ends with "PROVINSI NUSA TENGGARA BARAT" and has content before it to split beautifully
+    const provSuffix = "PROVINSI NUSA TENGGARA BARAT";
+    if (ucNamaSkpd.endsWith(provSuffix) && ucNamaSkpd.length > provSuffix.length) {
+      renderTwoRows = true;
+      displayRow1 = cleanNamaSkpd.substring(0, cleanNamaSkpd.length - provSuffix.length).trim();
+      displayRow2 = provSuffix;
+    }
+  }
+
+  const nameLen = displayRow1.length;
   let skpdFontSize = 'text-[20pt]';
   if (nameLen > 55) skpdFontSize = 'text-[14pt]';
   else if (nameLen > 40) skpdFontSize = 'text-[17pt]';
@@ -52,10 +77,21 @@ const Header: React.FC<{ skpd: SKPDConfig }> = ({ skpd }) => {
         </div>
         <div className="flex-1 px-2">
           <h3 className="text-[12pt] font-normal uppercase whitespace-nowrap leading-tight">Pemerintah {displayProvinsiBaris1}</h3>
-          <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>{skpd.namaSkpd}</h2>
-          {provinsiValue && !isProvInName && (
-            <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>{provinsiValue.toUpperCase()}</h2>
+          
+          {renderTwoRows ? (
+            <>
+              <h2 className="text-[14pt] font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5">{displayRow1}</h2>
+              <h2 className="text-[14pt] font-bold uppercase whitespace-nowrap leading-tight mb-1">{displayRow2}</h2>
+            </>
+          ) : (
+            <>
+              <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mt-1 mb-0.5`}>{skpd.namaSkpd}</h2>
+              {provinsiValue && !isProvInName && (
+                <h2 className={`${skpdFontSize} font-bold uppercase whitespace-nowrap leading-tight mb-1`}>{provinsiValue.toUpperCase()}</h2>
+              )}
+            </>
           )}
+          
           <p className="text-[9pt] font-normal leading-tight mt-1">{skpd.alamat}</p>
           {skpd.lokasi && <p className="text-[9pt] font-bold uppercase tracking-tight mt-0.5">{skpd.lokasi}</p>}
         </div>
@@ -98,6 +134,40 @@ const getSignatories = (assignment: TravelAssignment, officials: Official[], skp
   return { kepala, pptk, bendahara, ppk };
 };
 
+const renderKepalaDesignation = (kepalaJabatan: string, skpdNama: string, extraClass: string = "h-10") => {
+  const fullJabatan = `${kepalaJabatan} ${skpdNama}`.toUpperCase();
+  const cleanJabatan = fullJabatan.replace(/\s+/g, ' ').trim();
+  
+  const hasKesbangpol1 = cleanJabatan.includes("BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI");
+  const hasKesbangpol2 = cleanJabatan.includes("BADAN KESATUAN DAN POLITIK DALAM NEGERI");
+  
+  if (hasKesbangpol1 || hasKesbangpol2) {
+    let row1 = "KEPALA BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI";
+    if (hasKesbangpol2 && !hasKesbangpol1) {
+      row1 = "KEPALA BADAN KESATUAN DAN POLITIK DALAM NEGERI";
+    }
+    return (
+      <div className={`font-bold uppercase leading-tight ${extraClass}`}>
+        <div>{row1}</div>
+        <div>PROVINSI NUSA TENGGARA BARAT</div>
+      </div>
+    );
+  }
+  
+  return (
+    <p className={`font-bold uppercase leading-tight ${extraClass}`}>
+      {`${kepalaJabatan} ${skpdNama}`.toUpperCase().replace(/BADAN\s+BADAN/g, 'BADAN')},
+    </p>
+  );
+};
+
+const formatCombinedDesignationSingleRow = (jabatan: string, skpdNama: string): string => {
+  const full = `${jabatan} ${skpdNama}`.toUpperCase();
+  let clean = full.replace(/\s+/g, ' ').trim();
+  clean = clean.replace(/BADAN\s+BADAN/g, 'BADAN');
+  return clean;
+};
+
 export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials, subActivities }) => {
   const { kepala, bendahara, pptk, ppk } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
@@ -122,36 +192,30 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
       {/* Top Section */}
       <div className="flex justify-between items-start mb-6">
         <div className="font-bold underline text-[9pt]">UNTUK PEMERINTAH :</div>
-        <div className="border border-black p-2 w-[350px] text-[8pt]">
-          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
-            <span>Lembar ke</span><span>:</span><span>1 2 3 4 5 7</span>
-          </div>
-          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
-            <span>Kb no</span><span>:</span><span></span>
-          </div>
-          <div className="grid grid-cols-[100px_10px_1fr] mb-1">
-            <span>Tanggal</span><span>:</span><span></span>
-          </div>
-          <div className="grid grid-cols-[100px_10px_1fr] mb-1 items-center">
-            <span>Kode Kegiatan</span><span>:</span>
-            <div className="flex gap-1">
-              {assignment.subActivityCode.split('.').map((p, i) => (
-                <span key={i} className="border border-black px-1 min-w-[18px] text-center">{p}</span>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-[100px_10px_1fr] mb-1 items-center">
-            <span>Kode Rekening</span><span>:</span>
-            <div className="flex gap-1">
-              {(subActivity?.budgetCode || '').split('.').map((p, i) => (
-                <span key={i} className="border border-black px-1 min-w-[18px] text-center">{p}</span>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-[100px_10px_1fr]">
-            <span>Biro Organisasi</span><span>:</span><span className="font-bold uppercase">{skpd.namaSkpd}</span>
-          </div>
-        </div>
+        <table className="border-collapse border-2 border-black text-[10pt] w-[420px] font-sans">
+          <tbody>
+            <tr>
+              <td className="border-2 border-black px-2 py-1 font-bold w-[120px] whitespace-nowrap bg-white text-black">Kode Kegiatan</td>
+              <td className="border-2 border-black px-1 py-1 text-center w-[15px] font-bold bg-white text-black">:</td>
+              <td className="border-2 border-black px-2 py-1 font-mono text-[9.5pt] font-semibold tracking-wider bg-white text-black">{assignment.subActivityCode}</td>
+            </tr>
+            <tr>
+              <td className="border-2 border-black px-2 py-1 font-bold whitespace-nowrap bg-white text-black">Dibukukan Tgl</td>
+              <td className="border-2 border-black px-1 py-1 text-center font-bold bg-white text-black">:</td>
+              <td className="border-2 border-black px-2 py-1 bg-white text-black"></td>
+            </tr>
+            <tr>
+              <td className="border-2 border-black px-2 py-1 font-bold whitespace-nowrap bg-white text-black">No. BKU</td>
+              <td className="border-2 border-black px-1 py-1 text-center font-bold bg-white text-black">:</td>
+              <td className="border-2 border-black px-2 py-1 bg-white text-black"></td>
+            </tr>
+            <tr>
+              <td className="border-2 border-black px-2 py-1 font-bold whitespace-nowrap bg-white text-black">Sumber Dana</td>
+              <td className="border-2 border-black px-1 py-1 text-center font-bold bg-white text-black">:</td>
+              <td className="border-2 border-black px-2 py-1 bg-white text-black"></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="text-center mb-8">
@@ -162,7 +226,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
           <span>Terima dari</span><span>:</span>
           <span className="font-normal uppercase leading-tight">
-            {kepala.jabatan} {skpd.namaSkpd} di {skpd.lokasi || 'Mataram'}
+            {formatCombinedDesignationSingleRow(kepala.jabatan, skpd.namaSkpd)} di {skpd.lokasi || 'Mataram'}
           </span>
         </div>
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
@@ -188,8 +252,8 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
       <div className="grid grid-cols-3 gap-2 text-center text-[9pt] mb-10">
         <div className="flex flex-col">
           <p>Mengetahui/Menyetujui :</p>
-          <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan} {skpd.namaSkpd},</p>
-          <div className="h-16"></div>
+          {renderKepalaDesignation(kepala.jabatan, skpd.namaSkpd, "min-h-[40px] mb-2")}
+          <div className="h-14"></div>
           <p className="font-bold underline uppercase">{kepala.name}</p>
           <p>NIP. {kepala.nip}</p>
         </div>
@@ -203,28 +267,22 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         <div className="flex flex-col">
           <p>{formatMonthYear(assignment.signDate, skpd.lokasi)}</p>
           <p className="font-bold uppercase leading-tight h-10">Yang menerima uang,</p>
-          <div className="h-16 border-b border-black w-3/4 mx-auto mb-1"></div>
+          <div className="h-16 w-3/4 mx-auto mb-1"></div>
           <p className="font-bold underline uppercase">{firstEmp?.name}</p>
           <p>NIP. {firstEmp?.nip}</p>
         </div>
       </div>
 
       {/* Signature Row 2 */}
-      <div className={`grid ${ppk.name ? 'grid-cols-2 gap-20' : 'grid-cols-1'} text-center text-[9pt]`}>
+      <div className="grid grid-cols-3 gap-2 text-center text-[9pt]">
+        <div></div>
         <div className="flex flex-col">
           <p className="font-bold uppercase leading-tight h-10">Pejabat Pelaksana Teknis Kegiatan</p>
           <div className="h-16"></div>
           <p className="font-bold underline uppercase">{pptk.name}</p>
           <p>NIP. {pptk.nip}</p>
         </div>
-        {ppk.name && (
-          <div className="flex flex-col">
-            <p className="font-bold uppercase leading-tight h-10">Pejabat Penata Usahaan Keuangan</p>
-            <div className="h-16"></div>
-            <p className="font-bold underline uppercase">{ppk.name}</p>
-            <p>NIP. {ppk.nip}</p>
-          </div>
-        )}
+        <div></div>
       </div>
     </div>
   );
@@ -372,7 +430,7 @@ export const LampiranIIITemplate: React.FC<Props> = ({ assignment, employees, sk
 
                 <div className="text-center mt-6">
                    <p className="font-normal mb-1 italic">Mengetahui/Menyetujui :</p>
-                   <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan} {skpd.namaSkpd}</p>
+                   {renderKepalaDesignation(kepala.jabatan, skpd.namaSkpd, "min-h-[40px] mb-2")}
                    <div className="h-20"></div>
                    <p className="font-bold underline uppercase">{kepala.name}</p>
                    <p>NIP. {kepala.nip}</p>
@@ -476,44 +534,60 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
 
 export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials }) => {
   const { kepala } = getSignatories(assignment, officials, skpd);
-  const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
+  const selectedEmps = assignment.selectedEmployeeIds.map(id => employees.find(e => e.id === id)).filter((e): e is Employee => !!e);
 
   return (
-    <div className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt] border border-black relative">
-      <Header skpd={skpd} />
-      <div className="flex justify-end mb-2">
-        <div className="w-1/2 text-[10pt]">
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Lembar Ke</span><span>:</span><span></span></div>
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Kode No</span><span>:</span><span></span></div>
-          <div className="grid grid-cols-[80px_10px_1fr]"><span>Nomor</span><span>:</span><span>{assignment.assignmentNumber}</span></div>
-        </div>
-      </div>
-      <div className="text-center mb-4"><h2 className="text-[13pt] font-bold underline uppercase">SURAT PERJALANAN DINAS (SPD)</h2></div>
-      <table className="w-full border-collapse border border-black text-[11pt]">
-        <tbody>
-          <tr><td className="border border-black p-1 w-8 text-center align-top">1.</td><td className="border border-black p-1 w-1/2 align-top">Pejabat Pembuat Komitmen</td><td className="border border-black p-1 align-top">{kepala.jabatan}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">2.</td><td className="border border-black p-1 align-top">Nama pegawai yang diperintah</td><td className="border border-black p-1 font-bold align-top">{firstEmp?.name}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">3.</td><td className="border border-black p-1 align-top">a. Pangkat dan Golongan<br/>b. Jabatan / Instansi<br/>c. Tingkat Biaya Perjalanan Dinas</td><td className="border border-black p-1 align-top">a. {firstEmp?.pangkatGol}<br/>b. {firstEmp?.jabatan}<br/>c. </td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">4.</td><td className="border border-black p-1 align-top">Maksud Perjalanan Dinas</td><td className="border border-black p-1 align-top">{assignment.purpose}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">5.</td><td className="border border-black p-1 align-top">Alat angkut yang dipergunakan</td><td className="border border-black p-1 align-top">{assignment.transportation}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">6.</td><td className="border border-black p-1 align-top">a. Tempat berangkat<br/>b. Tempat tujuan</td><td className="border border-black p-1 align-top">a. {assignment.origin}<br/>b. {assignment.destination}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">7.</td><td className="border border-black p-1 align-top">a. Lamanya Perjalanan Dinas<br/>b. Tanggal berangkat<br/>c. Tanggal harus kembali/tiba di tempat baru</td><td className="border border-black p-1 align-top">a. {assignment.durationDays} ( {numberToWords(assignment.durationDays)} ) Hari<br/>b. {formatDateID(assignment.startDate)}<br/>c. {formatDateID(assignment.endDate)}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">8.</td><td className="border border-black p-1 align-top">Pengikut : Nama</td><td className="border border-black p-1 align-top">{assignment.selectedEmployeeIds.slice(1).map((id, idx) => (<div key={id}>{idx + 1}. {employees.find(e => e.id === id)?.name}</div>))}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">9.</td><td className="border border-black p-1 align-top">Pembebanan Anggaran<br/>a. Instansi<br/>b. Akun</td><td className="border border-black p-1 align-top"><br/>a. {skpd.namaSkpd}<br/>b. {assignment.subActivityCode}</td></tr>
-          <tr><td className="border border-black p-1 text-center align-top">10.</td><td className="border border-black p-1 align-top">Keterangan lain-lain</td><td className="border border-black p-1 align-top"></td></tr>
-        </tbody>
-      </table>
-      <div className="mt-8 grid grid-cols-2 text-[11pt]">
-        <div></div>
-        <div className="text-left pl-12">
-          <p>Dikeluarkan di : {skpd.lokasi || 'Mataram'}</p>
-          <p className="mb-4">Pada Tanggal : {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
-          <div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div>
-          <div className="h-16"></div>
-          <p className="font-bold underline uppercase">{kepala.name}</p>
-          <p>NIP. {kepala.nip}</p>
-        </div>
-      </div>
+    <div className="space-y-8 font-['Tahoma'] text-black w-full flex flex-col items-center">
+      {selectedEmps.map((emp) => {
+        const otherEmps = selectedEmps.filter(e => e.id !== emp.id);
+        
+        return (
+          <div key={emp.id} className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt] border border-black relative">
+            <Header skpd={skpd} />
+            <div className="flex justify-end mb-2">
+              <div className="w-1/2 text-[10pt]">
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Lembar Ke</span><span>:</span><span></span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Kode No</span><span>:</span><span></span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Nomor</span><span>:</span><span>{assignment.assignmentNumber}</span></div>
+              </div>
+            </div>
+            <div className="text-center mb-4"><h2 className="text-[13pt] font-bold underline uppercase">SURAT PERJALANAN DINAS (SPD)</h2></div>
+            <table className="w-full border-collapse border border-black text-[11pt]">
+              <tbody>
+                <tr><td className="border border-black p-1 w-8 text-center align-top">1.</td><td className="border border-black p-1 w-1/2 align-top">Pejabat Pembuat Komitmen</td><td className="border border-black p-1 align-top">{kepala.jabatan}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">2.</td><td className="border border-black p-1 align-top">Nama pegawai yang diperintah</td><td className="border border-black p-1 font-bold align-top">{emp.name}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">3.</td><td className="border border-black p-1 align-top">a. Pangkat dan Golongan<br/>b. Jabatan / Instansi<br/>c. Tingkat Biaya Perjalanan Dinas</td><td className="border border-black p-1 align-top">a. {emp.pangkatGol}<br/>b. {emp.jabatan}<br/>c. </td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">4.</td><td className="border border-black p-1 align-top">Maksud Perjalanan Dinas</td><td className="border border-black p-1 align-top">{assignment.purpose}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">5.</td><td className="border border-black p-1 align-top">Alat angkut yang dipergunakan</td><td className="border border-black p-1 align-top">{assignment.transportation}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">6.</td><td className="border border-black p-1 align-top">a. Tempat berangkat<br/>b. Tempat tujuan</td><td className="border border-black p-1 align-top">a. {assignment.origin}<br/>b. {assignment.destination}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">7.</td><td className="border border-black p-1 align-top">a. Lamanya Perjalanan Dinas<br/>b. Tanggal berangkat<br/>c. Tanggal harus kembali/tiba di tempat baru</td><td className="border border-black p-1 align-top">a. {assignment.durationDays} ( {numberToWords(assignment.durationDays)} ) Hari<br/>b. {formatDateID(assignment.startDate)}<br/>c. {formatDateID(assignment.endDate)}</td></tr>
+                <tr>
+                  <td className="border border-black p-1 text-center align-top">8.</td>
+                  <td className="border border-black p-1 align-top">Pengikut : Nama</td>
+                  <td className="border border-black p-1 align-top">
+                    {otherEmps.map((other, idx) => (
+                      <div key={other.id}>{idx + 1}. {other.name}</div>
+                    ))}
+                  </td>
+                </tr>
+                <tr><td className="border border-black p-1 text-center align-top">9.</td><td className="border border-black p-1 align-top">Pembebanan Anggaran<br/>a. Instansi<br/>b. Akun</td><td className="border border-black p-1 align-top"><br/>a. {skpd.namaSkpd}<br/>b. {assignment.subActivityCode}</td></tr>
+                <tr><td className="border border-black p-1 text-center align-top">10.</td><td className="border border-black p-1 align-top">Keterangan lain-lain</td><td className="border border-black p-1 align-top"></td></tr>
+              </tbody>
+            </table>
+            <div className="mt-8 grid grid-cols-2 text-[11pt]">
+              <div></div>
+              <div className="text-left pl-12">
+                <p>Dikeluarkan di : {skpd.lokasi || 'Mataram'}</p>
+                <p className="mb-4">Pada Tanggal : {formatDateID(assignment.signDate).split(' ').slice(1).join(' ')}</p>
+                <div className="min-h-[50px]"><p className="font-bold uppercase leading-tight">{kepala.jabatan}</p></div>
+                <div className="h-16"></div>
+                <p className="font-bold underline uppercase">{kepala.name}</p>
+                <p>NIP. {kepala.nip}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -671,7 +745,7 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
     <div className="landscape-page bg-white font-['Tahoma'] text-[9pt] leading-tight p-8 text-black">
        <div className="text-center mb-6 mx-auto max-w-[220mm]">
          <p className="font-normal text-[10pt]">
-           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{cleanPurpose}</span> selama <span className="font-bold">{assignment.durationDays || 0} ({numberToWords(assignment.durationDays || 0)}) hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {kepala.jabatan} {skpd.namaSkpd} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
+           Daftar Penerimaan Uang Perjalanan Dinas ke <span className="font-bold">{assignment.destination}</span> Dalam rangka <span className="font-bold">{cleanPurpose}</span> selama <span className="font-bold">{assignment.durationDays || 0} ({numberToWords(assignment.durationDays || 0)}) hari</span> dari tanggal <span className="font-bold">{formatDateID(assignment.startDate)}</span> s.d <span className="font-bold">{formatDateID(assignment.endDate)}</span> sesuai Surat Perintah Tugas {formatCombinedDesignationSingleRow(kepala.jabatan, skpd.namaSkpd)} Nomor : <span className="font-bold">{assignment.assignmentNumber}</span> tanggal <span className="font-bold">{formatDateID(assignment.signDate)}</span>
          </p>
        </div>
 
@@ -743,8 +817,27 @@ export const DaftarPenerimaanTemplate: React.FC<Props> = ({ assignment, employee
        <div className="grid grid-cols-2 mt-12 text-[9.5pt]">
           <div className="pl-12">
             <p className="mb-1 font-normal">Mengetahui/Menyetujui :</p>
-            <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan}</p>
-            <p className="font-bold uppercase leading-tight mb-16">{skpd.namaSkpd}</p>
+            {(() => {
+              const fullJabatan = `${kepala.jabatan} ${skpd.namaSkpd}`.toUpperCase();
+              const cleanJabatan = fullJabatan.replace(/\s+/g, ' ').trim();
+              const hasKesbangpol1 = cleanJabatan.includes("BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI");
+              const hasKesbangpol2 = cleanJabatan.includes("BADAN KESATUAN DAN POLITIK DALAM NEGERI");
+              if (hasKesbangpol1 || hasKesbangpol2) {
+                const row1 = hasKesbangpol2 && !hasKesbangpol1 ? "KEPALA BADAN KESATUAN DAN POLITIK DALAM NEGERI" : "KEPALA BADAN KESATUAN BANGSA DAN POLITIK DALAM NEGERI";
+                return (
+                  <>
+                    <p className="font-bold uppercase leading-tight">{row1}</p>
+                    <p className="font-bold uppercase leading-tight mb-16">PROVINSI NUSA TENGGARA BARAT</p>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <p className="font-bold uppercase leading-tight h-10">{kepala.jabatan}</p>
+                  <p className="font-bold uppercase leading-tight mb-16">{skpd.namaSkpd}</p>
+                </>
+              );
+            })()}
             <p className="font-bold underline uppercase">{kepala.name}</p>
             <p>NIP. {kepala.nip}</p>
           </div>

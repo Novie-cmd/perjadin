@@ -33,8 +33,8 @@ export const DatabaseSetup: React.FC<Props> = ({ onConnect }) => {
   };
 
   const handleUseDemoCredentials = () => {
-    setUrl('https://bligotrxzpisallhqzgt.supabase.co');
-    setKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0');
+    setUrl('https://vedbbnmdwnlvpwbsptiz.supabase.co');
+    setKey('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZGJibm1kd25sdnB3YnNwdGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzA1OTIsImV4cCI6MjA5NDk0NjU5Mn0.gmX1XwA5wmT7WhmAivcowmuoBGXnm5O-Sf2vSLOfJMY');
   };
 
   const triggerSimulateCopy = (field: string, val: string) => {

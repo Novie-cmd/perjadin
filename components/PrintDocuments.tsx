@@ -698,13 +698,13 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
           return (
             <div key={label} className={`grid grid-cols-2 ${BLOCK_STYLE.minHeight}`}>
-              <div className="p-2 flex flex-col h-full">
+               <div className="p-2 flex flex-col h-full">
                 <div className="grid grid-cols-[30px_95px_10px_1fr] gap-y-0.5 opacity-0">
                    <span></span><span></span><span></span><span></span>
                    <span></span><span></span><span></span><span></span>
                    <span></span><span>Kepala</span><span>:</span><span></span>
                 </div>
-                <div className={`${BLOCK_STYLE.paddingTop} flex-1 text-center`}>
+                <div className={`${idx === 0 ? 'pt-[110px]' : BLOCK_STYLE.paddingTop} flex-1 text-center`}>
                     <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
                     <p className="font-normal uppercase text-[8pt] leading-tight mb-20 text-black">{destOff.instansi}</p>
                     <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>
@@ -714,12 +714,12 @@ export const PejabatTujuanTemplate: React.FC<Props> = ({ assignment, destination
 
               <div className="p-2 flex flex-col h-full">
                 <div className="grid grid-cols-[95px_10px_1fr] gap-y-0.5 opacity-0">
-                  <span></span><span></span><span></span>
-                  <span></span><span></span><span></span>
-                  <span></span><span></span><span></span>
-                  <span>Kepala</span><span>:</span><span></span>
+                   <span></span><span></span><span></span>
+                   <span></span><span></span><span></span>
+                   <span></span><span></span><span></span>
+                   <span>Kepala</span><span>:</span><span></span>
                 </div>
-                <div className={`${BLOCK_STYLE.paddingTop} flex-1 text-center`}>
+                <div className={`${idx === 0 ? 'pt-[110px]' : BLOCK_STYLE.paddingTop} flex-1 text-center`}>
                     <p className="font-bold uppercase text-[9pt] leading-tight text-black">{destOff.jabatan}</p>
                     <p className="font-normal uppercase text-[8pt] leading-tight mb-20 text-black">{destOff.instansi}</p>
                     <p className="font-bold underline uppercase text-[10.5pt] text-black tracking-tight">{destOff.name}</p>

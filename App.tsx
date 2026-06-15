@@ -33,6 +33,12 @@ import {
 // Import formatDateID to fix "Cannot find name 'formatDateID'" error
 import { formatNumber, formatDateID } from './utils';
 import { OFFICE_NAME, OFFICE_ADDRESS, HEAD_OF_OFFICE, TREASURER } from './constants';
+import { 
+  initAuth, 
+  logoutGoogle, 
+  pullAllDataFromGoogleSheets, 
+  pushAllDataToGoogleSheets 
+} from './googleSheetsService';
 
 const SQL_SETUP_SCRIPT = `-- ==========================================
 -- SCRIPT SETUP DATABASE SUPABASE (FULL SCHEMA)
@@ -153,6 +159,9 @@ NOTIFY pgrst, 'reload schema';`;
 
 const App: React.FC = () => {
   const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
+  const [dbMode, setDbMode] = useState<'supabase' | 'sheets'>('supabase');
+  const [spreadsheetId, setSpreadsheetId] = useState<string>('');
+  const [googleToken, setGoogleToken] = useState<string>('');
   const [dbConfigured, setDbConfigured] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [loading, setLoading] = useState(true);
@@ -244,38 +253,70 @@ const App: React.FC = () => {
   }, [subActivities, assignments]);
 
   useEffect(() => {
-    let savedUrl = localStorage.getItem('SB_URL');
-    let savedKey = localStorage.getItem('SB_KEY');
-    const wasDisconnected = localStorage.getItem('SB_DISCONNECTED') === 'true';
-    
-    if (!savedUrl || !savedKey) {
-      if (wasDisconnected) {
+    const savedMode = localStorage.getItem('DB_MODE') as 'supabase' | 'sheets' | null;
+    const savedSheetId = localStorage.getItem('GS_SPREADSHEET_ID');
+
+    if (savedMode === 'sheets' && savedSheetId) {
+      setDbMode('sheets');
+      setSpreadsheetId(savedSheetId);
+      
+      const unsubscribe = initAuth((user, token) => {
+        setGoogleToken(token);
+        setDbConfigured(true);
+      }, () => {
         setLoading(false);
         setDbConfigured(false);
-        return;
-      } else {
-        savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
-        savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
-        localStorage.setItem('SB_URL', savedUrl);
-        localStorage.setItem('SB_KEY', savedKey);
-      }
-    }
-
-    if (savedUrl && savedKey) {
-      const client = createClient(savedUrl, savedKey);
-      setSupabase(client);
-      setDbConfigured(true);
+      });
+      return () => unsubscribe();
     } else {
-      setLoading(false);
+      setDbMode('supabase');
+      let savedUrl = localStorage.getItem('SB_URL');
+      let savedKey = localStorage.getItem('SB_KEY');
+      const wasDisconnected = localStorage.getItem('SB_DISCONNECTED') === 'true';
+      
+      if (!savedUrl || !savedKey) {
+        if (wasDisconnected) {
+          setLoading(false);
+          setDbConfigured(false);
+          return;
+        } else {
+          savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
+          savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
+          localStorage.setItem('SB_URL', savedUrl);
+          localStorage.setItem('SB_KEY', savedKey);
+          localStorage.setItem('DB_MODE', 'supabase');
+        }
+      }
+
+      if (savedUrl && savedKey) {
+        const client = createClient(savedUrl, savedKey);
+        setSupabase(client);
+        setDbConfigured(true);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
   const handleConnectDb = (url: string, key: string) => {
     localStorage.setItem('SB_URL', url);
     localStorage.setItem('SB_KEY', key);
+    localStorage.setItem('DB_MODE', 'supabase');
     localStorage.removeItem('SB_DISCONNECTED');
+    setDbMode('supabase');
     const client = createClient(url, key);
     setSupabase(client);
+    setDbConfigured(true);
+    setError(null);
+  };
+
+  const handleConnectSheets = (sheetId: string, token: string) => {
+    localStorage.setItem('DB_MODE', 'sheets');
+    localStorage.setItem('GS_SPREADSHEET_ID', sheetId);
+    localStorage.removeItem('SB_DISCONNECTED');
+    setDbMode('sheets');
+    setSpreadsheetId(sheetId);
+    setGoogleToken(token);
     setDbConfigured(true);
     setError(null);
   };
@@ -283,15 +324,57 @@ const App: React.FC = () => {
   const handleDisconnectDb = () => {
     localStorage.removeItem('SB_URL');
     localStorage.removeItem('SB_KEY');
+    localStorage.removeItem('DB_MODE');
+    localStorage.removeItem('GS_SPREADSHEET_ID');
     localStorage.setItem('SB_DISCONNECTED', 'true');
-    window.location.reload();
+    logoutGoogle().then(() => {
+      window.location.reload();
+    }).catch(() => {
+      window.location.reload();
+    });
   };
 
   const refreshData = async () => {
-    if (!supabase) return;
     setLoading(true);
     setError(null);
     setIsInvalidApiKey(false);
+    
+    if (dbMode === 'sheets') {
+      if (!googleToken || !spreadsheetId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const data = await pullAllDataFromGoogleSheets(googleToken, spreadsheetId);
+        if (data.employees) setEmployees(data.employees);
+        if (data.officials) setOfficials(data.officials);
+        if (data.destinationOfficials) setDestinationOfficials(data.destinationOfficials);
+        if (data.skpdConfig) {
+          setSkpdConfig(data.skpdConfig);
+        } else {
+          await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+            employees: data.employees,
+            officials: data.officials,
+            destinationOfficials: data.destinationOfficials,
+            skpdConfig: skpdConfig,
+            masterCosts: data.masterCosts,
+            subActivities: data.subActivities,
+            assignments: data.assignments
+          });
+        }
+        if (data.masterCosts) setMasterCosts(data.masterCosts);
+        if (data.subActivities) setSubActivities(data.subActivities);
+        if (data.assignments) setAssignments(data.assignments);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || 'Gagal memuat data dari Google Sheets. Pastikan token login Anda masih aktif.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!supabase) return;
     
     try {
       const [
@@ -373,9 +456,28 @@ const App: React.FC = () => {
     }
   };
 
-  useEffect(() => { if (dbConfigured) refreshData(); }, [dbConfigured]);
+  useEffect(() => { if (dbConfigured) refreshData(); }, [dbConfigured, dbMode, googleToken]);
 
   const handleSaveAssignment = async (data: TravelAssignment) => {
+    if (dbMode === 'sheets') {
+      const updated = assignments.some(a => a.id === data.id)
+        ? assignments.map(a => a.id === data.id ? data : a)
+        : [data, ...assignments];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments: updated
+        });
+        setAssignments(updated);
+        setViewMode(ViewMode.TRAVEL_LIST);
+      } catch (err: any) {
+        alert(`Gagal menyimpan ke Google Sheets: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!supabase) return;
     // Fix: access destinationOfficialIds from data (camelCase) to save to DB (snake_case)
     const { error } = await supabase.from('assignments').upsert({
@@ -393,6 +495,22 @@ const App: React.FC = () => {
   };
 
   const handleUpdateDestOfficials = async (assignId: string, destIds: string[]) => {
+    if (dbMode === 'sheets') {
+      const updated = assignments.map(a => a.id === assignId ? { ...a, destinationOfficialIds: destIds } : a);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments: updated
+        });
+        setAssignments(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!supabase) return;
     // Fix: Use 'destIds' parameter instead of undefined 'ids' variable
     const { error } = await supabase.from('assignments').update({ 
@@ -402,7 +520,387 @@ const App: React.FC = () => {
     else await refreshData();
   };
 
-  if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} />;
+  const handleSaveSkpdConfig = async (cfg: SKPDConfig) => {
+    if (dbMode === 'sheets') {
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig: cfg, masterCosts, subActivities, assignments
+        });
+        setSkpdConfig(cfg);
+        alert('Berhasil menyimpan konfigurasi SKPD');
+      } catch (err: any) {
+        alert(`Gagal menyimpan ke Google Sheets: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('skpd_config').upsert({
+        id: 'main', 
+        provinsi: cfg.provinsi, 
+        nama_skpd: cfg.namaSkpd, 
+        alamat: cfg.alamat, 
+        lokasi: cfg.lokasi, 
+        kepala_nama: cfg.kepalaNama, 
+        kepala_nip: cfg.kepalaNip, 
+        kepala_jabatan: cfg.kepalaJabatan, 
+        bendahara_nama: cfg.bendaharaNama, 
+        bendahara_nip: cfg.bendaharaNip, 
+        pptk_nama: cfg.pptkNama, 
+        pptk_nip: cfg.pptkNip, 
+        ppk_nama: cfg.ppkNama, 
+        ppk_nip: cfg.ppkNip, 
+        logo: cfg.logo
+      });
+      if (error) alert(error.message);
+      else await refreshData();
+    }
+  };
+
+  const handleSaveOfficial = async (o: Official) => {
+    const oId = o.id || Date.now().toString();
+    const target: Official = { ...o, id: oId };
+    if (dbMode === 'sheets') {
+      const updated = officials.some(item => item.id === oId)
+        ? officials.map(item => item.id === oId ? target : item)
+        : [...officials, target];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials: updated, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setOfficials(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('officials').upsert(target);
+      if (error) alert(error.message);
+      else await refreshData();
+    }
+  };
+
+  const handleDeleteOfficial = async (id: string) => {
+    if (!confirm('Hapus pejabat ini?')) return;
+    if (dbMode === 'sheets') {
+      const updated = officials.filter(item => item.id !== id);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials: updated, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setOfficials(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('officials').delete().eq('id', id);
+      if (error) alert(error.message);
+      else await refreshData();
+    }
+  };
+
+  const handleSaveEmployee = async (e: Employee) => {
+    if (dbMode === 'sheets') {
+      const updated = employees.some(item => item.id === e.id)
+        ? employees.map(item => item.id === e.id ? e : item)
+        : [...employees, e];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees: updated, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setEmployees(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('employees').upsert({
+        id: e.id,
+        name: e.name,
+        nip: e.nip,
+        pangkat_gol: e.pangkatGol,
+        jabatan: e.jabatan,
+        representation_luar: e.representationLuar,
+        representation_dalam: e.representationDalam
+      });
+      if (error) alert(error.message);
+      else await refreshData();
+    }
+  };
+
+  const handleDeleteEmployee = async (id: string) => {
+    if (!confirm('Hapus pegawai ini?')) return;
+    if (dbMode === 'sheets') {
+      const updated = employees.filter(item => item.id !== id);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees: updated, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setEmployees(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('employees').delete().eq('id', id);
+      if (error) alert(error.message);
+      else await refreshData();
+    }
+  };
+
+  const handleSaveDestinationOfficial = async (o: DestinationOfficial) => {
+    const oId = o.id || Date.now().toString();
+    const target: DestinationOfficial = { ...o, id: oId };
+    if (dbMode === 'sheets') {
+      const updated = destinationOfficials.some(item => item.id === oId)
+        ? destinationOfficials.map(item => item.id === oId ? target : item)
+        : [...destinationOfficials, target];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials: updated, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setDestinationOfficials(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('destination_officials').upsert(target);
+      if (error) alert(error.message); else await refreshData();
+    }
+  };
+
+  const handleDeleteDestinationOfficial = async (id: string) => {
+    if (!confirm('Hapus data pejabat ini?')) return;
+    if (dbMode === 'sheets') {
+      const updated = destinationOfficials.filter(item => item.id !== id);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials: updated, skpdConfig, masterCosts, subActivities, assignments
+        });
+        setDestinationOfficials(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('destination_officials').delete().eq('id', id);
+      if (error) alert(error.message); else await refreshData();
+    }
+  };
+
+  const handleDeleteAssignment = async (id: string) => {
+    if (!confirm('Anda yakin ingin menghapus data ini?')) return;
+    if (dbMode === 'sheets') {
+      const updated = assignments.filter(item => item.id !== id);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments: updated
+        });
+        setAssignments(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      await supabase.from('assignments').delete().eq('id', id);
+      await refreshData();
+    }
+  };
+
+  const handleSaveMasterCost = async (c: MasterCost) => {
+    if (dbMode === 'sheets') {
+      const updated = masterCosts.some(item => item.destination === c.destination)
+        ? masterCosts.map(item => item.destination === c.destination ? c : item)
+        : [...masterCosts, c];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts: updated, subActivities, assignments
+        });
+        setMasterCosts(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      await supabase.from('master_costs').upsert({
+        destination: c.destination,
+        daily_allowance: c.dailyAllowance,
+        lodging: c.lodging,
+        transport_bbm: c.transportBbm,
+        sea_transport: c.seaTransport,
+        air_transport: c.airTransport,
+        taxi: c.taxi
+      });
+      await refreshData();
+    }
+  };
+
+  const handleDeleteMasterCost = async (dest: string) => {
+    if (dbMode === 'sheets') {
+      const updated = masterCosts.filter(item => item.destination !== dest);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts: updated, subActivities, assignments
+        });
+        setMasterCosts(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      await supabase.from('master_costs').delete().eq('destination', dest);
+      await refreshData();
+    }
+  };
+
+  const handleClearMasterCosts = async () => {
+    if (!confirm('Hapus semua rincian biaya master?')) return;
+    if (dbMode === 'sheets') {
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts: [], subActivities, assignments
+        });
+        setMasterCosts([]);
+      } catch (err: any) {
+        alert(`Gagal mengosongkan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      await supabase.from('master_costs').delete().neq('destination', '___');
+      await refreshData();
+    }
+  };
+
+  const handleSaveSubActivity = async (s: SubActivity) => {
+    if (dbMode === 'sheets') {
+      const updated = subActivities.some(item => item.code === s.code)
+        ? subActivities.map(item => item.code === s.code ? s : item)
+        : [...subActivities, s];
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities: updated, assignments
+        });
+        setSubActivities(updated);
+      } catch (err: any) {
+        alert(`Gagal menyimpan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('sub_activities').upsert({
+        code: s.code,
+        name: s.name,
+        budget_code: s.budgetCode || '',
+        anggaran: s.anggaran || 0,
+        spd: s.spd || '0',
+        triwulan1: s.triwulan1 || 0,
+        triwulan2: s.triwulan2 || 0,
+        triwulan3: s.triwulan3 || 0,
+        triwulan4: s.triwulan4 || 0
+      });
+      if (error) alert(`Gagal Simpan: ${error.message}`);
+      else await refreshData();
+    }
+  };
+
+  const handleDeleteSubActivity = async (code: string) => {
+    const hasAssignments = assignments.some(a => a.subActivityCode === code);
+    if (hasAssignments) {
+      alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.');
+      return;
+    }
+    if (dbMode === 'sheets') {
+      const updated = subActivities.filter(item => item.code !== code);
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities: updated, assignments
+        });
+        setSubActivities(updated);
+      } catch (err: any) {
+        alert(`Gagal menghapus: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('sub_activities').delete().eq('code', code);
+      if (error) alert(`Gagal Hapus: ${error.message}`);
+      else await refreshData();
+    }
+  };
+
+  const handleClearSubActivities = async () => {
+    if (!confirm('Hapus semua sub kegiatan?')) return;
+    if (dbMode === 'sheets') {
+      try {
+        setLoading(true);
+        await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+          employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities: [], assignments
+        });
+        setSubActivities([]);
+      } catch (err: any) {
+        alert(`Gagal mengosongkan: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (supabase) {
+      await supabase.from('sub_activities').delete().neq('code', '___');
+      await refreshData();
+    }
+  };
+
+  if (!dbConfigured && !loading) return <DatabaseSetup onConnect={handleConnectDb} onConnectSheets={handleConnectSheets} />;
   if (loading) return <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center flex-col"><RefreshCw className="animate-spin text-blue-400 mb-4" size={48} /><h2 className="font-black text-xl tracking-widest italic">MENGHUBUNGKAN...</h2></div>;
   
   if (error) {
@@ -747,25 +1245,15 @@ const App: React.FC = () => {
           </div>
         )}
 
-        { viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={async (cfg) => { if (supabase) { const { error } = await supabase.from('skpd_config').upsert({ id: 'main', provinsi: cfg.provinsi, nama_skpd: cfg.namaSkpd, alamat: cfg.alamat, lokasi: cfg.lokasi, kepala_nama: cfg.kepalaNama, kepala_nip: cfg.kepalaNip, kepala_jabatan: cfg.kepalaJabatan, bendahara_nama: cfg.bendaharaNama, bendahara_nip: cfg.bendaharaNip, pptk_nama: cfg.pptkNama, pptk_nip: cfg.pptkNip, ppk_nama: cfg.ppkNama, ppk_nip: cfg.ppkNip, logo: cfg.logo }); if (error) alert(error.message); else await refreshData(); } }} /> }
-        {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={async (o) => { if (supabase) { const { error } = await supabase.from('officials').upsert({ id: o.id || Date.now().toString(), ...o }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('officials').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
-        {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={async (e) => { if (supabase) { const { error } = await supabase.from('employees').upsert({ id: e.id, name: e.name, nip: e.nip, pangkat_gol: e.pangkatGol, jabatan: e.jabatan, representation_luar: e.representationLuar, representation_dalam: e.representationDalam }); if (error) alert(error.message); else await refreshData(); } }} onDelete={async (id) => { if (supabase && confirm('Hapus?')) { const { error } = await supabase.from('employees').delete().eq('id', id); if (error) alert(error.message); else await refreshData(); } }} />}
+        { viewMode === ViewMode.SKPD_CONFIG && <SKPDForm config={skpdConfig} onSave={handleSaveSkpdConfig} /> }
+        {viewMode === ViewMode.OFFICIAL_LIST && <OfficialForm officials={officials} onSave={handleSaveOfficial} onDelete={handleDeleteOfficial} />}
+        {viewMode === ViewMode.EMPLOYEE_LIST && <EmployeeForm employees={employees} onSave={handleSaveEmployee} onDelete={handleDeleteEmployee} />}
         
         {viewMode === ViewMode.DESTINATION_OFFICIAL_LIST && (
           <DestinationOfficialForm 
             officials={destinationOfficials} 
-            onSave={async (o) => {
-              if (supabase) {
-                const { error } = await supabase.from('destination_officials').upsert(o);
-                if (error) alert(error.message); else await refreshData();
-              }
-            }} 
-            onDelete={async (id) => {
-              if (supabase && confirm('Hapus data pejabat ini?')) {
-                const { error } = await supabase.from('destination_officials').delete().eq('id', id);
-                if (error) alert(error.message); else await refreshData();
-              }
-            }}
+            onSave={handleSaveDestinationOfficial} 
+            onDelete={handleDeleteDestinationOfficial}
             onPrint={(off) => {
               setActiveDestOfficial(off);
               setTargetBlockIndex(0); // Reset ke Bagian II
@@ -833,7 +1321,7 @@ const App: React.FC = () => {
                             <Edit2 size={16}/>
                           </button>
                           <button 
-                            onClick={async () => { if(supabase && confirm('Anda yakin ingin menghapus data ini?')) { await supabase.from('assignments').delete().eq('id', a.id); await refreshData(); } }} 
+                            onClick={() => handleDeleteAssignment(a.id)} 
                             className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
                             title="Hapus SPT"
                           >
@@ -862,24 +1350,14 @@ const App: React.FC = () => {
               handleUpdateDestOfficials(currentAssignForDest.id, ids);
               setIsDestManagerOpen(false);
             }}
-            onSaveMaster={async (o) => {
-              if (supabase) {
-                await supabase.from('destination_officials').upsert({ ...o, id: o.id || Date.now().toString() });
-                await refreshData();
-              }
-            }}
-            onDeleteMaster={async (id) => {
-              if (supabase && confirm('Hapus dari master?')) {
-                await supabase.from('destination_officials').delete().eq('id', id);
-                await refreshData();
-              }
-            }}
+            onSaveMaster={handleSaveDestinationOfficial}
+            onDeleteMaster={handleDeleteDestinationOfficial}
             onClose={() => setIsDestManagerOpen(false)}
           />
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
-        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={async (c) => { if(supabase) { await supabase.from('master_costs').upsert({ destination: c.destination, daily_allowance: c.daily_allowance, lodging: c.lodging, transport_bbm: c.transport_bbm, sea_transport: c.sea_transport, air_transport: c.air_transport, taxi: c.taxi }); await refreshData(); } }} onDeleteCost={async (d) => { if(supabase) { await supabase.from('master_costs').delete().eq('destination', d); await refreshData(); } }} onClearCosts={async () => { if(supabase) { await supabase.from('master_costs').delete().neq('destination', '___'); await refreshData(); } }} onSaveSub={async (s) => { if(supabase) { const { error } = await supabase.from('sub_activities').upsert({ code: s.code, name: s.name, budget_code: s.budgetCode || '', anggaran: s.anggaran || 0, spd: s.spd || '0', triwulan1: s.triwulan1 || 0, triwulan2: s.triwulan2 || 0, triwulan3: s.triwulan3 || 0, triwulan4: s.triwulan4 || 0 }); if (error) alert(`Gagal Simpan: ${error.message}`); else await refreshData(); } }} onDeleteSub={async (c) => { if(supabase) { const data = await supabase.from('assignments').select('id').eq('sub_activity_code', c).limit(1); if (data.data && data.data.length > 0) { alert('Gagal Hapus: Sub Kegiatan ini sedang digunakan dalam riwayat SPT. Hapus SPT terkait terlebih dahulu.'); return; } const { error } = await supabase.from('sub_activities').delete().eq('code', c); if (error) alert(`Gagal Hapus: ${error.message}`); else await refreshData(); } }} onClearSubs={async () => { if(supabase && confirm('Hapus semua sub kegiatan?')) { await supabase.from('sub_activities').delete().neq('code', '___'); await refreshData(); } }} />}
+        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={handleSaveMasterCost} onDeleteCost={handleDeleteMasterCost} onClearCosts={handleClearMasterCosts} onSaveSub={handleSaveSubActivity} onDeleteSub={handleDeleteSubActivity} onClearSubs={handleClearSubActivities} />}
         
         {viewMode === ViewMode.REPORT && (
           <ReportView 

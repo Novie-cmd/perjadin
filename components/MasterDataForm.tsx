@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MasterCost, SubActivity } from '../types';
-import { Plus, Trash2, Upload, Save, X, Edit2, CreditCard, ListTree, AlertTriangle, Download, RefreshCw, Share2, Calculator } from 'lucide-react';
+import { Plus, Trash2, Upload, Save, X, Edit2, CreditCard, ListTree, AlertTriangle, Download, RefreshCw, Share2, Calculator, ExternalLink } from 'lucide-react';
 import { formatCurrency, formatNumber, parseNumber } from '../utils';
 import * as XLSX from 'xlsx';
 
@@ -17,6 +17,10 @@ interface Props {
   onExport?: () => void;
   onImport?: (file: File) => void;
   onReset?: () => void;
+  dbMode?: 'supabase' | 'sheets';
+  onPullSheets?: () => Promise<void>;
+  onPushSheets?: () => Promise<void>;
+  spreadsheetId?: string;
 }
 
 type Tab = 'COSTS' | 'SUBS' | 'SYNC';
@@ -24,7 +28,8 @@ type Tab = 'COSTS' | 'SUBS' | 'SYNC';
 export const MasterDataForm: React.FC<Props> = ({ 
   masterCosts, onSaveCost, onDeleteCost, onClearCosts,
   subActivities, onSaveSub, onDeleteSub, onClearSubs,
-  onExport, onImport, onReset 
+  onExport, onImport, onReset,
+  dbMode = 'supabase', onPullSheets, onPushSheets, spreadsheetId
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('COSTS');
   const [isAdding, setIsAdding] = useState(false);
@@ -265,25 +270,137 @@ export const MasterDataForm: React.FC<Props> = ({
         {/* Sync Tab UI */}
         {activeTab === 'SYNC' && (
           <div className="p-8 space-y-8 animate-in fade-in duration-300">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
-                <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
-                  <Download size={28} />
+            {dbMode === 'sheets' && (
+              <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl space-y-6">
+                <div>
+                  <h4 className="text-base font-black text-emerald-900 uppercase tracking-tight flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    Koneksi Google Sheets Aktif
+                  </h4>
+                  <p className="text-xs text-emerald-700/90 mt-1 font-medium">
+                    Aplikasi terhubung langsung dan disinkronkan dengan Google Spreadsheet sebagai repositori database.
+                  </p>
+                  {spreadsheetId && (
+                    <div className="mt-3 bg-white border border-emerald-100 rounded-xl p-3.5 flex flex-wrap gap-4 items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">ID SPREADSHEET</span>
+                        <code className="text-xs font-mono font-bold text-slate-700 break-all">{spreadsheetId}</code>
+                      </div>
+                      <a 
+                        href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-xl transition inline-flex items-center gap-2 shadow-md shadow-emerald-200"
+                      >
+                        Buka Spreadsheet <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
                 </div>
-                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Cadangkan Database</h4>
-                <button onClick={onExport} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100">Unduh File .json</button>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pull Sheets Action */}
+                  <div className="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-4 border border-teal-100">
+                        <RefreshCw size={22} />
+                      </div>
+                      <h5 className="font-black text-slate-800 text-sm uppercase tracking-tight">1. Tarik Data Utama (Sync-In)</h5>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                        Mengambil data pegawai, pejabat internal, pejabat luar, detail biaya regional, sub kegiatan dan riwayat perjalanan dinas terbaru dari lembar Google Sheets Anda. Sangat berguna jika Anda atau rekan kerja Anda mengubah data langsung di spreadsheet.
+                      </p>
+                    </div>
+                    <div className="mt-6">
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          if (onPullSheets) {
+                            try {
+                              setIsSaving(true);
+                              await onPullSheets();
+                              alert('Berhasil menarik data terbaru dari Google Sheets!');
+                            } catch (err: any) {
+                              alert(`Gagal menarik data: ${err.message}`);
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }
+                        }}
+                        disabled={isSaving}
+                        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-black text-[10px] uppercase tracking-widest py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-teal-50 disabled:opacity-50"
+                      >
+                        <RefreshCw size={12} className={isSaving ? "animate-spin" : ""} />
+                        {isSaving ? 'Menarik data...' : 'Tarik Data dari Spreadsheet'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Push Sheets Action */}
+                  <div className="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 border border-emerald-100">
+                        <Share2 size={22} />
+                      </div>
+                      <h5 className="font-black text-slate-800 text-sm uppercase tracking-tight">2. Kirim Data Utama (Sync-Out)</h5>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                        Mengunggah data aplikasi lokal Anda saat ini ke Google Spreadsheet. Ini akan menggantikan dan menyelaraskan lembar kerja spreadsheet Anda dengan apa yang Anda lihat di aplikasi.
+                      </p>
+                    </div>
+                    <div className="mt-6">
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          if (confirm('Apakah Anda yakin ingin mengirim semua data lokal saat ini ke Google Sheets? Tindakan ini akan menimpa isi pada spreadsheet Anda.')) {
+                            if (onPushSheets) {
+                              try {
+                                setIsSaving(true);
+                                await onPushSheets();
+                                alert('Berhasil memperbarui data di Google Sheets!');
+                              } catch (err: any) {
+                                alert(`Gagal memperbarui data: ${err.message}`);
+                              } finally {
+                                setIsSaving(false);
+                              }
+                            }
+                          }
+                        }}
+                        disabled={isSaving}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-50 disabled:opacity-50"
+                      >
+                        <Share2 size={12} />
+                        Kirim data ke Spreadsheet
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
-                  <Upload size={28} />
+            )}
+
+            <div className="space-y-4">
+              <h4 className="text-xs font-black text-slate-500 uppercase tracking-wider">Metode Cadangan File Offline (.json)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
+                  <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                    <Download size={28} />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Cadangkan Database</h4>
+                  <button onClick={onExport} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-blue-100">Unduh File .json</button>
                 </div>
-                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Sinkronkan Database</h4>
-                <button onClick={() => dbInputRef.current?.click()} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">Unggah File .json</button>
-                <input type="file" ref={dbInputRef} accept=".json" className="hidden" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file && onImport) onImport(file);
-                  e.target.value = '';
-                }} />
+                <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-lg transition-all duration-300">
+                  <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                    <Upload size={28} />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2">Sinkronkan Database</h4>
+                  <button onClick={() => dbInputRef.current?.click()} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-100">Unggah File .json</button>
+                  <input type="file" ref={dbInputRef} accept=".json" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && onImport) onImport(file);
+                    e.target.value = '';
+                  }} />
+                </div>
               </div>
             </div>
           </div>

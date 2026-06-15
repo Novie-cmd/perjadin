@@ -197,6 +197,7 @@ const App: React.FC = () => {
   const [targetBlockIndex, setTargetBlockIndex] = useState<number>(0); // 0:II, 1:III, 2:IV
   const [editingAssignment, setEditingAssignment] = useState<TravelAssignment | null>(null);
   const [printType, setPrintType] = useState<PrintType>(PrintType.SPT);
+  const [syncStatus, setSyncStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
   const [isDestManagerOpen, setIsDestManagerOpen] = useState(false);
   const [currentAssignForDest, setCurrentAssignForDest] = useState<TravelAssignment | null>(null);
@@ -1156,9 +1157,111 @@ const App: React.FC = () => {
       </aside>
 
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+        <header className="mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-6">
           <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{viewMode.replace('_', ' ')}</h2><p className="text-slate-500 text-[10px] font-bold uppercase mt-1 flex items-center gap-1"><Building2 size={12} /> {skpdConfig.namaSkpd}</p></div>
+          <div className="flex flex-wrap items-center gap-3">
+            {dbMode === 'sheets' ? (
+              <div className="flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-2xl">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Spreadsheet Terhubung</span>
+                </div>
+                
+                <div className="h-4 w-px bg-emerald-200 mx-1"></div>
+
+                <button 
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      await refreshData();
+                      setSyncStatus({ type: 'success', message: 'Berhasil menarik data terbaru dari Google Sheets!' });
+                      setTimeout(() => setSyncStatus({ type: null, message: '' }), 5000);
+                    } catch (err: any) {
+                      setSyncStatus({ type: 'error', message: err.message || 'Gagal menarik data' });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+                  title="Tarik seluruh data dari Google Spreadsheet Anda untuk menyamakan data di aplikasi"
+                >
+                  <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+                  Tarik Data Sheets
+                </button>
+
+                <button 
+                  onClick={async () => {
+                    if (!confirm('Apakah Anda yakin ingin mengirim semua data lokal saat ini ke Google Sheets? Ini akan menggantikan isi spreadsheet.')) return;
+                    try {
+                      setLoading(true);
+                      await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+                        employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+                      });
+                      setSyncStatus({ type: 'success', message: 'Berhasil mengirim dan memperbarui data di Google Sheets!' });
+                      setTimeout(() => setSyncStatus({ type: null, message: '' }), 5000);
+                    } catch (err: any) {
+                      setSyncStatus({ type: 'error', message: err.message || 'Gagal mengirim data' });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="bg-white hover:bg-slate-100 text-emerald-750 border border-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm disabled:opacity-50"
+                  title="Kirim dan perbarui data aplikasi saat ini ke Google Spreadsheet"
+                >
+                  <Database size={12} />
+                  Kirim Data ke Sheets
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-2 rounded-2xl">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-450 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-blue-800 tracking-wider">Supabase Terhubung</span>
+                </div>
+                <div className="h-4 w-px bg-blue-205 mx-1"></div>
+                <button 
+                  onClick={refreshData}
+                  disabled={loading}
+                  className="text-blue-700 hover:bg-blue-100 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                >
+                  <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+                  Segarkan
+                </button>
+              </div>
+            )}
+          </div>
         </header>
+
+        {syncStatus.type && (
+          <div className={`mb-6 p-4 rounded-2xl border flex items-center justify-between animate-in slide-in-from-top-4 duration-300 ${
+            syncStatus.type === 'success' 
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                syncStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-650'
+              }`}>
+                {syncStatus.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
+              </span>
+              <p className="text-xs font-bold">{syncStatus.message}</p>
+            </div>
+            <button 
+              onClick={() => setSyncStatus({ type: null, message: '' })}
+              className="text-[10px] font-black uppercase tracking-wider hover:opacity-80 px-2 py-1 rounded"
+            >
+              Tutup
+            </button>
+          </div>
+        )}
 
         {viewMode === ViewMode.DASHBOARD && (
           <div className="space-y-8 animate-in fade-in duration-500">
@@ -1357,7 +1460,26 @@ const App: React.FC = () => {
         )}
 
         {viewMode === ViewMode.ADD_TRAVEL && <TravelAssignmentForm employees={employees} masterCosts={masterCosts} subActivities={subActivities} officials={officials} initialData={editingAssignment || undefined} onSave={handleSaveAssignment} onCancel={() => setViewMode(ViewMode.TRAVEL_LIST)} />}
-        {viewMode === ViewMode.MASTER_DATA && <MasterDataForm masterCosts={masterCosts} subActivities={subActivities} onSaveCost={handleSaveMasterCost} onDeleteCost={handleDeleteMasterCost} onClearCosts={handleClearMasterCosts} onSaveSub={handleSaveSubActivity} onDeleteSub={handleDeleteSubActivity} onClearSubs={handleClearSubActivities} />}
+        {viewMode === ViewMode.MASTER_DATA && (
+          <MasterDataForm 
+            masterCosts={masterCosts} 
+            subActivities={subActivities} 
+            onSaveCost={handleSaveMasterCost} 
+            onDeleteCost={handleDeleteMasterCost} 
+            onClearCosts={handleClearMasterCosts} 
+            onSaveSub={handleSaveSubActivity} 
+            onDeleteSub={handleDeleteSubActivity} 
+            onClearSubs={handleClearSubActivities} 
+            dbMode={dbMode}
+            onPullSheets={refreshData}
+            onPushSheets={async () => {
+              await pushAllDataToGoogleSheets(googleToken, spreadsheetId, {
+                employees, officials, destinationOfficials, skpdConfig, masterCosts, subActivities, assignments
+              });
+            }}
+            spreadsheetId={spreadsheetId}
+          />
+        )}
         
         {viewMode === ViewMode.REPORT && (
           <ReportView 

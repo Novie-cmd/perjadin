@@ -481,7 +481,7 @@ const App: React.FC = () => {
 
     if (!supabase) return;
     // Fix: access destinationOfficialIds from data (camelCase) to save to DB (snake_case)
-    const { error } = await supabase.from('assignments').upsert({
+    let { error } = await supabase.from('assignments').upsert({
       id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
       purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
       transportation: data.transportation, destination: data.destination, 
@@ -491,6 +491,28 @@ const App: React.FC = () => {
       signer_id: data.signerId, bendahara_id: data.bendaharaId, ppk_id: data.ppkId,
       destination_official_ids: data.destinationOfficialIds || []
     });
+
+    if (error && (error.message.includes('ppk_id') || error.message.toLowerCase().includes('schema cache'))) {
+      // Retry without ppk_id for users with older database schemas
+      const { error: retryError } = await supabase.from('assignments').upsert({
+        id: data.id, assignment_number: data.assignmentNumber, sub_activity_code: data.subActivityCode, 
+        purpose: data.purpose, origin: data.origin, travel_type: data.travelType, 
+        transportation: data.transportation, destination: data.destination, 
+        start_date: data.startDate, end_date: data.endDate, duration_days: data.durationDays, 
+        selected_employee_ids: data.selectedEmployeeIds, costs: data.costs, 
+        signed_at: data.signedAt, sign_date: data.signDate, pptk_id: data.pptkId, 
+        signer_id: data.signerId, bendahara_id: data.bendaharaId,
+        destination_official_ids: data.destinationOfficialIds || []
+      });
+      if (!retryError) {
+        alert("SPT berhasil disimpan!\n\nCatatan: Kolom 'ppk_id' (PPK) belum dibuat di tabel 'assignments' pada database Supabase Anda. SPT berhasil disimpan tanpa data PPK.\n\nUntuk mengaktifkan fitur PPK sepenuhnya, silakan masuk ke Supabase SQL Editor proyek Anda dan jalankan query berikut:\n\nALTER TABLE assignments ADD COLUMN IF NOT EXISTS ppk_id TEXT;\nNOTIFY pgrst, 'reload schema';");
+        await refreshData();
+        setViewMode(ViewMode.TRAVEL_LIST);
+        return;
+      }
+      error = retryError;
+    }
+
     if (error) alert(`Gagal menyimpan: ${error.message}`);
     else { await refreshData(); setViewMode(ViewMode.TRAVEL_LIST); }
   };
@@ -538,7 +560,7 @@ const App: React.FC = () => {
       return;
     }
     if (supabase) {
-      const { error } = await supabase.from('skpd_config').upsert({
+      let { error } = await supabase.from('skpd_config').upsert({
         id: 'main', 
         provinsi: cfg.provinsi, 
         nama_skpd: cfg.namaSkpd, 
@@ -555,8 +577,37 @@ const App: React.FC = () => {
         ppk_nip: cfg.ppkNip, 
         logo: cfg.logo
       });
+
+      if (error && (error.message.includes('ppk_nama') || error.message.includes('ppk_nip') || error.message.toLowerCase().includes('schema cache'))) {
+        // Retry without PPK fields
+        const { error: retryError } = await supabase.from('skpd_config').upsert({
+          id: 'main', 
+          provinsi: cfg.provinsi, 
+          nama_skpd: cfg.namaSkpd, 
+          alamat: cfg.alamat, 
+          lokasi: cfg.lokasi, 
+          kepala_nama: cfg.kepalaNama, 
+          kepala_nip: cfg.kepalaNip, 
+          kepala_jabatan: cfg.kepalaJabatan, 
+          bendahara_nama: cfg.bendaharaNama, 
+          bendahara_nip: cfg.bendaharaNip, 
+          pptk_nama: cfg.pptkNama, 
+          pptk_nip: cfg.pptkNip, 
+          logo: cfg.logo
+        });
+        if (!retryError) {
+          alert("Konfigurasi SKPD berhasil disimpan!\n\nCatatan: Kolom 'ppk_nama' & 'ppk_nip' belum terdefinisi di tabel 'skpd_config' pada database Supabase Anda. Konfigurasi disimpan tanpa detail PPK.\n\nSilakan buka SQL Editor Supabase Anda dan jalankan query berikut untuk mengaktifkan pembaruan struktur tabel:\n\nALTER TABLE skpd_config ADD COLUMN IF NOT EXISTS ppk_nama TEXT;\nALTER TABLE skpd_config ADD COLUMN IF NOT EXISTS ppk_nip TEXT;\nNOTIFY pgrst, 'reload schema';");
+          await refreshData();
+          return;
+        }
+        error = retryError;
+      }
+
       if (error) alert(error.message);
-      else await refreshData();
+      else {
+        alert('Berhasil menyimpan konfigurasi SKPD');
+        await refreshData();
+      }
     }
   };
 

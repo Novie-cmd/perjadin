@@ -172,6 +172,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
   const { kepala, bendahara, pptk, ppk } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
   const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
+  const secondEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[1]) || firstEmp;
   const subActivity = subActivities?.find(s => s.code === assignment.subActivityCode);
 
   // Helper to render code boxes
@@ -268,8 +269,8 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
           <p>{formatMonthYear(assignment.signDate, skpd.lokasi)}</p>
           <p className="font-bold uppercase leading-tight h-10">Yang menerima uang,</p>
           <div className="h-16 w-3/4 mx-auto mb-1"></div>
-          <p className="font-bold underline uppercase">{firstEmp?.name}</p>
-          <p>NIP. {firstEmp?.nip}</p>
+          <p className="font-bold underline uppercase">{secondEmp?.name}</p>
+          <p>NIP. {secondEmp?.nip}</p>
         </div>
       </div>
 

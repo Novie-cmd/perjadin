@@ -275,18 +275,14 @@ const App: React.FC = () => {
       let savedKey = localStorage.getItem('SB_KEY');
       const wasDisconnected = localStorage.getItem('SB_DISCONNECTED') === 'true';
       
-      if (!savedUrl || !savedKey) {
-        if (wasDisconnected) {
-          setLoading(false);
-          setDbConfigured(false);
-          return;
-        } else {
-          savedUrl = "https://bligotrxzpisallhqzgt.supabase.co";
-          savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsaWdvdHJ4enBpc2FsbGhxemd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NTc1NjIsImV4cCI6MjA4NzIzMzU2Mn0.3Ny0P-S_HKFG3CXrLuwRfe4dgepzyjyhWVh2Ss_yiL0";
-          localStorage.setItem('SB_URL', savedUrl);
-          localStorage.setItem('SB_KEY', savedKey);
-          localStorage.setItem('DB_MODE', 'supabase');
-        }
+      // Auto-migrate old database or set default to the new requested database
+      if (!savedUrl || !savedKey || savedUrl.includes("bligotrxzpisallhqzgt")) {
+        savedUrl = "https://vedbbnmdwnlvpwbsptiz.supabase.co";
+        savedKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZGJibm1kd25sdnB3YnNwdGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzA1OTIsImV4cCI6MjA5NDk0NjU5Mn0.gmX1XwA5wmT7WhmAivcowmuoBGXnm5O-Sf2vSLOfJMY";
+        localStorage.setItem('SB_URL', savedUrl);
+        localStorage.setItem('SB_KEY', savedKey);
+        localStorage.setItem('DB_MODE', 'supabase');
+        localStorage.removeItem('SB_DISCONNECTED'); // Auto-connect and bypass disconnected state
       }
 
       if (savedUrl && savedKey) {

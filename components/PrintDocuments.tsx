@@ -566,9 +566,6 @@ export const SPPDFrontTemplate: React.FC<Props> = ({ assignment, employees, skpd
                   <td className="border border-black p-1 text-center align-top">8.</td>
                   <td className="border border-black p-1 align-top">Pengikut : Nama</td>
                   <td className="border border-black p-1 align-top">
-                    {otherEmps.map((other, idx) => (
-                      <div key={other.id}>{idx + 1}. {other.name}</div>
-                    ))}
                   </td>
                 </tr>
                 <tr><td className="border border-black p-1 text-center align-top">9.</td><td className="border border-black p-1 align-top">Pembebanan Anggaran<br/>a. Instansi<br/>b. Akun</td><td className="border border-black p-1 align-top"><br/>a. {skpd.namaSkpd}<br/>b. {assignment.subActivityCode}</td></tr>

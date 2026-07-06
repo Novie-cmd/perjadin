@@ -450,6 +450,22 @@ export const SPTTemplate: React.FC<Props> = ({ assignment, employees, skpd, offi
 
   return (
     <div className="print-page bg-white font-['Tahoma'] text-black leading-tight text-[11pt]">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            margin-top: 2.54cm !important;
+            margin-bottom: 2cm !important;
+            margin-left: 0mm !important;
+            margin-right: 0mm !important;
+          }
+          @page :first {
+            margin-top: 0mm !important;
+            margin-bottom: 0mm !important;
+            margin-left: 0mm !important;
+            margin-right: 0mm !important;
+          }
+        }
+      `}} />
       <Header skpd={skpd} />
       <div className="text-center mb-6">
         <h2 className="text-[12pt] font-bold underline uppercase decoration-1 underline-offset-2">Surat Tugas</h2>

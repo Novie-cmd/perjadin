@@ -171,8 +171,10 @@ const formatCombinedDesignationSingleRow = (jabatan: string, skpdNama: string): 
 export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd, officials, subActivities }) => {
   const { kepala, bendahara, pptk, ppk } = getSignatories(assignment, officials, skpd);
   const totalAll = assignment.costs.reduce((sum, cost) => sum + (cost.dailyAllowance * cost.dailyDays) + (cost.lodging * cost.lodgingDays) + cost.transportBbm + cost.seaTransport + cost.airTransport + cost.taxi + (cost.representation * cost.representationDays), 0);
-  const firstEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
-  const secondEmp = employees.find(e => e.id === assignment.selectedEmployeeIds[1]) || firstEmp;
+  const isMultiple = (assignment.selectedEmployeeIds || []).length > 1;
+  const recipientEmp = isMultiple
+    ? (employees.find(e => e.id === assignment.selectedEmployeeIds[1]) || employees.find(e => e.id === assignment.selectedEmployeeIds[0]))
+    : employees.find(e => e.id === assignment.selectedEmployeeIds[0]);
   const subActivity = subActivities?.find(s => s.code === assignment.subActivityCode);
 
   // Helper to render code boxes
@@ -237,7 +239,7 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
         <div className="grid grid-cols-[160px_10px_1fr] items-start">
           <span>Untuk Keperluan Pembayaran</span><span>:</span>
           <span className="text-justify leading-relaxed">
-            Belanja Perjalanan Dinas Dalam Daerah ke {assignment.destination} selama {assignment.durationDays} hari Dalam rangka {assignment.purpose} sesuai Surat Perintah Tugas Kepala {skpd.namaSkpd} Nomor : {assignment.assignmentNumber} tanggal {formatDateID(assignment.signDate)} A.n. {firstEmp?.name}, sesuai daftar penerimaan terlampir
+            Belanja Perjalanan Dinas Dalam Daerah ke {assignment.destination} selama {assignment.durationDays} hari Dalam rangka {assignment.purpose} sesuai Surat Perintah Tugas Kepala {skpd.namaSkpd} Nomor : {assignment.assignmentNumber} tanggal {formatDateID(assignment.signDate)} A.n. {recipientEmp?.name}{isMultiple ? ', dkk' : ''}, sesuai daftar penerimaan terlampir
           </span>
         </div>
       </div>
@@ -269,8 +271,8 @@ export const KuitansiTemplate: React.FC<Props> = ({ assignment, employees, skpd,
           <p>{formatMonthYear(assignment.signDate, skpd.lokasi)}</p>
           <p className="font-bold uppercase leading-tight h-10">Yang menerima uang,</p>
           <div className="h-16 w-3/4 mx-auto mb-1"></div>
-          <p className="font-bold underline uppercase">{secondEmp?.name}</p>
-          <p>NIP. {secondEmp?.nip}</p>
+          <p className="font-bold underline uppercase">{recipientEmp?.name}</p>
+          <p>NIP. {recipientEmp?.nip}</p>
         </div>
       </div>
 
